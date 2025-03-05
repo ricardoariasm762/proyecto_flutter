@@ -1,6 +1,6 @@
 {
-    "name": "proyecto_flutter",
-    "short_name": "proyecto_flutter",
+    "name": "ride_match",
+    "short_name": "ride_match",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
