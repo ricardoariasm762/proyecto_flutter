@@ -17,9 +17,16 @@ class ChatScreen extends StatelessWidget {
       body: ListView.builder(
         itemCount: mensajes.length,
         itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(mensajes[index]),
+          return Container(
+            margin: EdgeInsets.all(8),
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(mensajes[index]),
           );
+          
         },
       ),
     );
