@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
-import '../services/ride_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,9 +13,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
 
   final locationService = LocationService();
-  final rideService = RideService();
 
-  String locationText = "Obteniendo ubicación...";
+  LatLng? currentPosition;
+
+  final mapController = MapController();
 
   @override
   void initState() {
@@ -24,20 +26,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> getLocation() async {
 
-    try {
+    final position = await locationService.getCurrentLocation();
 
-      final position = await locationService.getCurrentLocation();
-
-      setState(() {
-        locationText =
-            "Lat: ${position.latitude}, Lng: ${position.longitude}";
-      });
-
-    } catch (e) {
-      setState(() {
-        locationText = "Error obteniendo ubicación";
-      });
-    }
+    setState(() {
+      currentPosition = LatLng(
+        position.latitude,
+        position.longitude,
+      );
+    });
   }
 
   @override
@@ -49,39 +45,49 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text("RideMatch"),
       ),
 
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: currentPosition == null
+          ? const Center(child: CircularProgressIndicator())
+          : FlutterMap(
 
-          children: [
+              mapController: mapController,
 
-            Text(locationText),
+              options: MapOptions(
+                initialCenter: currentPosition!,
+                initialZoom: 15,
+              ),
 
-            const SizedBox(height: 20),
+              children: [
 
-            ElevatedButton(
-              onPressed: () async {
+                TileLayer(
+                  urlTemplate:
+                      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                ),
 
-                final position =
-                    await locationService.getCurrentLocation();
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: currentPosition!,
+                      width: 50,
+                      height: 50,
+                      child: const Icon(
+                        Icons.location_pin,
+                        color: Colors.red,
+                        size: 40,
+                      ),
+                    )
+                  ],
+                ),
 
-                await rideService.createRide(
-                  originLat: position.latitude,
-                  originLng: position.longitude,
-                  destLat: position.latitude + 0.01,
-                  destLng: position.longitude + 0.01,
-                );
+              ],
+            ),
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Viaje creado")),
-                );
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          await getLocation();
 
-              },
-              child: const Text("Crear viaje"),
-            )
-
-          ],
-        ),
+          mapController.move(currentPosition!, 15);
+        },
+        child: const Icon(Icons.my_location),
       ),
     );
   }
