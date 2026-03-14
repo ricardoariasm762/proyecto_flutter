@@ -60,3 +60,4 @@ class MyApp extends StatelessWidget {
 }
 // ajuste UI
 // mejora navegación
+// ajuste menor UI
