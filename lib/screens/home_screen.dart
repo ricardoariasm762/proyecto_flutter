@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../services/location_service.dart';
 import '../services/ride_service.dart';
+import '../services/auth_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,18 +15,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final locationService = LocationService();
   final rideService = RideService();
+  final authService = AuthService();
   final mapController = MapController();
 
   LatLng? currentPosition;
   LatLng? destination;
   int _selectedIndex = 0;
-  late Future<List<Map<String, dynamic>>> _communityRides;
+  late Stream<List<Map<String, dynamic>>> _communityRides;
 
   @override
   void initState() {
     super.initState();
     getLocation();
-    _communityRides = rideService.getRides();
+    _communityRides = rideService.getRidesStream();
   }
 
   Future<void> getLocation() async {
@@ -44,20 +46,20 @@ class _HomeScreenState extends State<HomeScreen> {
       destLng: destination!.longitude,
     );
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Viaje comunitario creado")),
-    );
-    _refreshRides();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Viaje comunitario creado")));
   }
 
   Future<void> _refreshRides() async {
-    setState(() => _communityRides = rideService.getRides());
-    await _communityRides;
+    setState(() => _communityRides = rideService.getRidesStream());
   }
 
   int _rideMembers(Map<String, dynamic> ride) {
     final raw =
-        ride['members_count'] ?? ride['participants_count'] ?? ride['occupancy'];
+        ride['members_count'] ??
+        ride['participants_count'] ??
+        ride['occupancy'];
     if (raw is int && raw >= 1 && raw <= 5) return raw;
     final id = (ride['id'] ?? '').toString();
     return 1 + (id.hashCode.abs() % 5);
@@ -190,8 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: _refreshRides,
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _communityRides,
+        child: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _communityRides,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -233,6 +235,16 @@ class _HomeScreenState extends State<HomeScreen> {
                         seatsLeft: seats,
                         totalFare: total,
                         splitFare: total / members,
+                        onJoin: () async {
+                          await rideService.requestJoinRide(
+                            ride['id'], // Eliminamos 'as int'
+                            'otro_usuario_demo', // ID de usuario que solicita unirse
+                          );
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Solicitud enviada")),
+                          );
+                        },
                       ),
                     );
                   }),
@@ -245,25 +257,46 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProfileTab() {
+    final user = authService.currentUser;
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
-        children: const [
-          _ProfileCard(),
-          SizedBox(height: 12),
+        children: [
+          _ProfileCard(email: user?.email ?? 'Usuario'),
+          const SizedBox(height: 12),
           _OptionTile(
             icon: Icons.history_rounded,
             title: "Historial de viajes",
             subtitle: "Tus rutas comunitarias recientes",
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RideHistoryScreen(
+                    rideService: rideService,
+                    userId: user?.id ?? '',
+                  ),
+                ),
+              );
+            },
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           _OptionTile(
+            icon: Icons.logout_rounded,
+            title: "Cerrar Sesión",
+            subtitle: "Salir de tu cuenta",
+            onTap: () async {
+              await authService.signOut();
+            },
+          ),
+          const SizedBox(height: 10),
+          const _OptionTile(
             icon: Icons.payments_outlined,
             title: "Metodos de pago",
             subtitle: "Configura como dividir tus pagos",
           ),
-          SizedBox(height: 10),
-          _OptionTile(
+          const SizedBox(height: 10),
+          const _OptionTile(
             icon: Icons.shield_moon_outlined,
             title: "Seguridad",
             subtitle: "Contactos y opciones de emergencia",
@@ -275,11 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pages = [
-      _buildTripsTab(),
-      _buildCommunityTab(),
-      _buildProfileTab(),
-    ];
+    final pages = [_buildTripsTab(), _buildCommunityTab(), _buildProfileTab()];
     return Scaffold(
       body: pages[_selectedIndex],
       floatingActionButton: _selectedIndex == 0
@@ -296,7 +325,8 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        onDestinationSelected: (index) =>
+            setState(() => _selectedIndex = index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.map_outlined),
@@ -326,6 +356,7 @@ class _RideCard extends StatelessWidget {
     required this.seatsLeft,
     required this.totalFare,
     required this.splitFare,
+    this.onJoin,
   });
 
   final Map<String, dynamic> ride;
@@ -333,6 +364,7 @@ class _RideCard extends StatelessWidget {
   final int seatsLeft;
   final double totalFare;
   final double splitFare;
+  final VoidCallback? onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -341,23 +373,34 @@ class _RideCard extends StatelessWidget {
     final dLat = (ride['dest_lat'] as num?)?.toDouble();
     final dLng = (ride['dest_lng'] as num?)?.toDouble();
     final status = (ride['status'] ?? 'waiting').toString();
+    final isPending = status == 'pending' || status == 'esperando usuario';
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFEADFFF)),
+        border: Border.all(
+          color: isPending ? const Color(0xFFFFE0B2) : const Color(0xFFEADFFF),
+          width: isPending ? 2 : 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 16,
-                backgroundColor: Color(0xFFF2E8FF),
-                child: Icon(Icons.route, color: Color(0xFF673AB7)),
+                backgroundColor: isPending
+                    ? const Color(0xFFFFF3E0)
+                    : const Color(0xFFF2E8FF),
+                child: Icon(
+                  isPending ? Icons.hourglass_top_rounded : Icons.route,
+                  color: isPending
+                      ? const Color(0xFFE65100)
+                      : const Color(0xFF673AB7),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -366,11 +409,23 @@ class _RideCard extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              Text(
-                status,
-                style: const TextStyle(
-                  color: Color(0xFF6B42C7),
-                  fontWeight: FontWeight.w700,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isPending
+                      ? const Color(0xFFFFE0B2)
+                      : const Color(0x1A6D3FD1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  isPending ? "ESPERANDO USUARIO" : status.toUpperCase(),
+                  style: TextStyle(
+                    color: isPending
+                        ? const Color(0xFFE65100)
+                        : const Color(0xFF6B42C7),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                  ),
                 ),
               ),
             ],
@@ -385,23 +440,46 @@ class _RideCard extends StatelessWidget {
             "Destino: ${(dLat ?? 0).toStringAsFixed(4)}, ${(dLng ?? 0).toStringAsFixed(4)}",
             style: const TextStyle(fontSize: 12, color: Color(0xFF645886)),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "$members/5 personas • Cupos: $seatsLeft",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF4F3F76),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Total: \$${totalFare.toStringAsFixed(0)} • Por persona: \$${splitFare.toStringAsFixed(0)}",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Color(0xFF4F3F76),
-              fontWeight: FontWeight.w700,
-            ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "$members/5 personas • Cupos: $seatsLeft",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4F3F76),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    "Total: \$${totalFare.toStringAsFixed(0)} • Pago: \$${splitFare.toStringAsFixed(0)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF4F3F76),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              if (!isPending && onJoin != null)
+                ElevatedButton(
+                  onPressed: onJoin,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 0,
+                    ),
+                    minimumSize: const Size(0, 32),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: const Text("Unirme"),
+                ),
+            ],
           ),
         ],
       ),
@@ -422,9 +500,16 @@ class _EmptyCard extends StatelessWidget {
       ),
       child: const Column(
         children: [
-          Icon(Icons.hourglass_empty_rounded, size: 34, color: Color(0xFF7445D3)),
+          Icon(
+            Icons.hourglass_empty_rounded,
+            size: 34,
+            color: Color(0xFF7445D3),
+          ),
           SizedBox(height: 8),
-          Text("Todavia no hay viajes", style: TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            "Todavia no hay viajes",
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
           SizedBox(height: 4),
           Text(
             "Crea uno desde la pestaña Viajes y aparecera en esta lista.",
@@ -438,7 +523,9 @@ class _EmptyCard extends StatelessWidget {
 }
 
 class _ProfileCard extends StatelessWidget {
-  const _ProfileCard();
+  const _ProfileCard({required this.email});
+
+  final String email;
 
   @override
   Widget build(BuildContext context) {
@@ -450,31 +537,28 @@ class _ProfileCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             radius: 26,
             backgroundColor: Colors.white24,
             child: Icon(Icons.person, color: Colors.white, size: 30),
           ),
-          SizedBox(width: 12),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Nicolas",
-                  style: TextStyle(
+                  email.split('@')[0],
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  "Conductor comunitario • 24 viajes",
-                  style: TextStyle(color: Color(0xFFE8DBFF)),
-                ),
+                const SizedBox(height: 2),
+                Text(email, style: const TextStyle(color: Color(0xFFE8DBFF))),
               ],
             ),
           ),
@@ -489,42 +573,155 @@ class _OptionTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFFF2E8FF),
-            child: Icon(icon, color: const Color(0xFF6338BF)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF6A5C89)),
-                ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: const Color(0xFFF2E8FF),
+              child: Icon(icon, color: const Color(0xFF6338BF)),
             ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: Colors.black45),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF6A5C89),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.black45),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class RideHistoryScreen extends StatelessWidget {
+  const RideHistoryScreen({
+    super.key,
+    required this.rideService,
+    required this.userId,
+  });
+
+  final RideService rideService;
+  final String userId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "Historial de Viajes",
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+        centerTitle: true,
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: rideService.getUserRides(userId),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const Center(child: Text("Error al cargar historial"));
+          }
+
+          final rides = snapshot.data!;
+          if (rides.isEmpty) {
+            return const Center(
+              child: Text("Aún no tienes viajes en tu historial"),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: rides.length,
+            itemBuilder: (context, index) {
+              final ride = rides[index];
+              final status = (ride['status'] ?? 'waiting').toString();
+              final isPending =
+                  status == 'pending' || status == 'esperando usuario';
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    backgroundColor: isPending
+                        ? const Color(0xFFFFE0B2)
+                        : const Color(0xFFF2E8FF),
+                    child: Icon(
+                      isPending ? Icons.hourglass_top_rounded : Icons.history,
+                      color: isPending
+                          ? const Color(0xFFE65100)
+                          : const Color(0xFF673AB7),
+                    ),
+                  ),
+                  title: Text(
+                    "De: ${(ride['origin_lat'] as num).toStringAsFixed(3)}, ${(ride['origin_lng'] as num).toStringAsFixed(3)}",
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "A: ${(ride['dest_lat'] as num).toStringAsFixed(3)}, ${(ride['dest_lng'] as num).toStringAsFixed(3)}",
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Estado: ${status.toUpperCase()}",
+                        style: TextStyle(
+                          color: isPending
+                              ? const Color(0xFFE65100)
+                              : const Color(0xFF6B42C7),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: Text(
+                    "ID: ${ride['id'].toString().substring(0, 5)}...",
+                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                  ),
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
