@@ -1,7 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RideService {
-
   final supabase = Supabase.instance.client;
 
   Future<void> createRide({
@@ -22,8 +21,12 @@ class RideService {
 
   }
 
-  Future<List> getRides() async {
-    return await supabase.from('rides').select();
+  Future<List<Map<String, dynamic>>> getRides() async {
+    final data = await supabase
+        .from('rides')
+        .select()
+        .order('id', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
   }
 
 }
