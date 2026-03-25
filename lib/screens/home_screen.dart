@@ -37,14 +37,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> createRide() async {
     if (destination == null || currentPosition == null) return;
-
     await rideService.createRide(
       originLat: currentPosition!.latitude,
       originLng: currentPosition!.longitude,
       destLat: destination!.latitude,
       destLng: destination!.longitude,
     );
-
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Viaje comunitario creado")),
@@ -53,9 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _refreshRides() async {
-    setState(() {
-      _communityRides = rideService.getRides();
-    });
+    setState(() => _communityRides = rideService.getRides());
     await _communityRides;
   }
 
@@ -84,7 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentPosition == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return Stack(
       children: [
         FlutterMap(
@@ -92,9 +87,7 @@ class _HomeScreenState extends State<HomeScreen> {
           options: MapOptions(
             initialCenter: currentPosition!,
             initialZoom: 15,
-            onTap: (_, point) {
-              setState(() => destination = point);
-            },
+            onTap: (_, point) => setState(() => destination = point),
           ),
           children: [
             TileLayer(
@@ -232,7 +225,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     final members = _rideMembers(ride);
                     final total = _rideTotalFare(ride);
                     final seats = 5 - members;
-                    final split = total / members;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _RideCard(
@@ -240,7 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         members: members,
                         seatsLeft: seats,
                         totalFare: total,
-                        splitFare: split,
+                        splitFare: total / members,
                       ),
                     );
                   }),
@@ -288,7 +280,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _buildCommunityTab(),
       _buildProfileTab(),
     ];
-
     return Scaffold(
       body: pages[_selectedIndex],
       floatingActionButton: _selectedIndex == 0
@@ -305,9 +296,7 @@ class _HomeScreenState extends State<HomeScreen> {
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedIndex = index);
-        },
+        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.map_outlined),
@@ -435,10 +424,7 @@ class _EmptyCard extends StatelessWidget {
         children: [
           Icon(Icons.hourglass_empty_rounded, size: 34, color: Color(0xFF7445D3)),
           SizedBox(height: 8),
-          Text(
-            "Todavia no hay viajes",
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
+          Text("Todavia no hay viajes", style: TextStyle(fontWeight: FontWeight.w700)),
           SizedBox(height: 4),
           Text(
             "Crea uno desde la pestaña Viajes y aparecera en esta lista.",
