@@ -9,7 +9,7 @@ import 'data/repositories/ride_repository_impl.dart';
 import 'domain/repositories/location_repository.dart';
 import 'domain/repositories/ride_repository.dart';
 import 'presentation/screens/home/home_screen.dart';
-import 'screens/auth_screen.dart';
+import 'presentation/screens/auth/auth_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
