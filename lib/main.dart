@@ -1,13 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/home_screen.dart';
+import 'core/config/environment.dart';
+import 'core/supabase/supabase_client_provider.dart';
+import 'data/datasources/location_local_data_source.dart';
+import 'data/datasources/ride_remote_data_source.dart';
+import 'data/repositories/location_repository_impl.dart';
+import 'data/repositories/ride_repository_impl.dart';
+import 'domain/repositories/location_repository.dart';
+import 'domain/repositories/ride_repository.dart';
+import 'presentation/screens/home/home_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: 'https://mowhkgekfndkbjddchiz.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vd2hrZ2VrZm5ka2JqZGRjaGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjQ3MjUsImV4cCI6MjA4OTQ0MDcyNX0.mBn0tIQocTy2pFgXrwgx2PBmctEOY8mLvWpxfQp_iNs',
+  await Environment.init();
+
+  final supabaseUrl = Environment.supabaseUrl;
+  final supabaseAnonKey = Environment.supabaseAnonKey;
+
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
+  SupabaseClientProvider.init(
+    supabaseUrl: supabaseUrl,
+    supabaseAnonKey: supabaseAnonKey,
   );
 
   runApp(const MyApp());
@@ -18,46 +34,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Dependency Injection (Simplified)
+    final rideRemoteDataSource = RideRemoteDataSource(
+      SupabaseClientProvider.instance.client,
+    );
+    final RideRepository rideRepository = RideRepositoryImpl(
+      rideRemoteDataSource,
+    );
+    
+    final locationLocalDataSource = LocationLocalDataSource();
+    final LocationRepository locationRepository = LocationRepositoryImpl(
+      locationLocalDataSource,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'RideMatch Comunidad',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F1FF),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6D3FD1),
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: const CardThemeData(
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5B32B4),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          indicatorColor: const Color(0x2A6D3FD1),
-          backgroundColor: Colors.white,
-          labelTextStyle: WidgetStateProperty.all(
-            const TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
+      theme: AppTheme.lightTheme,
+      home: HomeScreen(
+        rideRepository: rideRepository,
+        locationRepository: locationRepository,
       ),
-      home: const HomeScreen(),
     );
   }
 }
-// ajuste UI
-// mejora navegación
-// ajuste menor UI
