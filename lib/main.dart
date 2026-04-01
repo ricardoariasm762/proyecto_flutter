@@ -9,6 +9,7 @@ import 'data/repositories/ride_repository_impl.dart';
 import 'domain/repositories/location_repository.dart';
 import 'domain/repositories/ride_repository.dart';
 import 'presentation/screens/home/home_screen.dart';
+import 'screens/auth_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -51,9 +52,23 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'RideMatch Comunidad',
       theme: AppTheme.lightTheme,
-      home: HomeScreen(
-        rideRepository: rideRepository,
-        locationRepository: locationRepository,
+      home: StreamBuilder<AuthState>(
+        stream: Supabase.instance.client.auth.onAuthStateChange,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+
+          final session = snapshot.data?.session;
+          if (session != null) {
+            return HomeScreen(
+              rideRepository: rideRepository,
+              locationRepository: locationRepository,
+            );
+          } else {
+            return const AuthScreen();
+          }
+        },
       ),
     );
   }
