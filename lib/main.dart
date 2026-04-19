@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config/environment.dart';
 import 'core/supabase/supabase_client_provider.dart';
-import 'data/datasources/location_local_data_source.dart';
+import 'data/datasources/auth_remote_data_source.dart';
+import 'data/datasources/location_data_source.dart';
 import 'data/datasources/ride_remote_data_source.dart';
+import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/location_repository_impl.dart';
 import 'data/repositories/ride_repository_impl.dart';
-import 'domain/repositories/location_repository.dart';
-import 'domain/repositories/ride_repository.dart';
-import 'presentation/screens/home/home_screen.dart';
-import 'presentation/screens/auth/auth_screen.dart';
+import 'presentation/screens/auth_screen.dart';
+import 'presentation/screens/home_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -20,7 +20,10 @@ void main() async {
   final supabaseUrl = Environment.supabaseUrl;
   final supabaseAnonKey = Environment.supabaseAnonKey;
 
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
 
   SupabaseClientProvider.init(
     supabaseUrl: supabaseUrl,
@@ -35,38 +38,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Dependency Injection (Simplified)
-    final rideRemoteDataSource = RideRemoteDataSource(
-      SupabaseClientProvider.instance.client,
-    );
-    final RideRepository rideRepository = RideRepositoryImpl(
-      rideRemoteDataSource,
-    );
-    
-    final locationLocalDataSource = LocationLocalDataSource();
-    final LocationRepository locationRepository = LocationRepositoryImpl(
-      locationLocalDataSource,
-    );
+    final authRepository = AuthRepositoryImpl(AuthRemoteDataSource());
+    final rideRepository = RideRepositoryImpl(RideRemoteDataSource());
+    final locationRepository = LocationRepositoryImpl(LocationDataSource());
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'RideMatch Comunidad',
       theme: AppTheme.lightTheme,
       home: StreamBuilder<AuthState>(
-        stream: Supabase.instance.client.auth.onAuthStateChange,
+        stream: authRepository.authStateChanges,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-
-          final session = snapshot.data?.session;
+          final session =
+              snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
           if (session != null) {
             return HomeScreen(
+              authRepository: authRepository,
               rideRepository: rideRepository,
               locationRepository: locationRepository,
             );
           } else {
-            return const AuthScreen();
+            return AuthScreen(authRepository: authRepository);
           }
         },
       ),
