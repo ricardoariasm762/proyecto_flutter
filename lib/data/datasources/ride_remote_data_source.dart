@@ -1,23 +1,53 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/ride_model.dart';
+import '../../core/supabase/supabase_client_provider.dart';
 
 class RideRemoteDataSource {
-  final SupabaseClient client;
+  SupabaseClient get _client => SupabaseClientProvider.instance.client;
 
-  RideRemoteDataSource(this.client);
-
-  Future<void> createRide(RideModel ride) async {
-    await client.from('rides').insert(ride.toJson());
+  Stream<List<Map<String, dynamic>>> ridesStreamRaw() {
+    return _client
+        .from('rides')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false);
   }
 
-  Future<List<RideModel>> getRides() async {
-    final response = await client
+  Future<void> createRide({
+    required String userId,
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+  }) async {
+    await _client.from('rides').insert({
+      'user_id': userId,
+      'origin_lat': originLat,
+      'origin_lng': originLng,
+      'dest_lat': destLat,
+      'dest_lng': destLng,
+      'status': 'waiting',
+    });
+  }
+
+  Future<void> requestJoinRide({required String rideId, required String userId}) async {
+    try {
+      await _client.from('ride_requests').insert({
+        'ride_id': rideId,
+        'user_id': userId,
+        'status': 'pending',
+      });
+
+      await _client.from('rides').update({'status': 'pending'}).eq('id', rideId);
+    } catch (_) {
+      await _client.from('rides').update({'status': 'pending'}).eq('id', rideId);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getUserRidesRaw(String userId) async {
+    final data = await _client
         .from('rides')
         .select()
-        .order('id', ascending: false);
-    
-    return (response as List)
-        .map((ride) => RideModel.fromJson(ride))
-        .toList();
+        .or('user_id.eq.$userId,participants_count.gt.0')
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(data);
   }
 }

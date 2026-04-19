@@ -1,36 +1,55 @@
 import '../../domain/models/ride.dart';
 
-class RideModel extends Ride {
-  RideModel({
-    required super.id,
-    required super.userId,
-    required super.originLat,
-    required super.originLng,
-    required super.destLat,
-    required super.destLng,
-    required super.status,
+class RideModel {
+  const RideModel({
+    required this.id,
+    required this.userId,
+    required this.originLat,
+    required this.originLng,
+    required this.destLat,
+    required this.destLng,
+    required this.status,
+    required this.participantsCount,
+    required this.createdAt,
   });
 
-  factory RideModel.fromJson(Map<String, dynamic> json) {
+  final String id;
+  final String userId;
+  final double originLat;
+  final double originLng;
+  final double destLat;
+  final double destLng;
+  final String status;
+  final int participantsCount;
+  final DateTime? createdAt;
+
+  static RideModel fromMap(Map<String, dynamic> map) {
     return RideModel(
-      id: json['id'].toString(),
-      userId: json['user_id'] ?? '',
-      originLat: (json['origin_lat'] as num).toDouble(),
-      originLng: (json['origin_lng'] as num).toDouble(),
-      destLat: (json['dest_lat'] as num).toDouble(),
-      destLng: (json['dest_lng'] as num).toDouble(),
-      status: json['status'] ?? '',
+      id: (map['id'] ?? '').toString(),
+      userId: (map['user_id'] ?? '').toString(),
+      originLat: (map['origin_lat'] as num?)?.toDouble() ?? 0,
+      originLng: (map['origin_lng'] as num?)?.toDouble() ?? 0,
+      destLat: (map['dest_lat'] as num?)?.toDouble() ?? 0,
+      destLng: (map['dest_lng'] as num?)?.toDouble() ?? 0,
+      status: (map['status'] ?? 'waiting').toString(),
+      participantsCount: (map['participants_count'] as num?)?.toInt() ?? 1,
+      createdAt: map['created_at'] is String
+          ? DateTime.tryParse(map['created_at'] as String)
+          : null,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'user_id': userId,
-      'origin_lat': originLat,
-      'origin_lng': originLng,
-      'dest_lat': destLat,
-      'dest_lng': destLng,
-      'status': status,
-    };
+  Ride toDomain() {
+    return Ride(
+      id: id,
+      userId: userId,
+      originLat: originLat,
+      originLng: originLng,
+      destLat: destLat,
+      destLng: destLng,
+      status: status,
+      participantsCount: participantsCount,
+      createdAt: createdAt,
+    );
   }
 }
