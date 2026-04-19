@@ -1,14 +1,14 @@
 import 'package:geolocator/geolocator.dart';
 import '../../domain/repositories/location_repository.dart';
-import '../datasources/location_local_data_source.dart';
+import '../datasources/location_data_source.dart';
 
 class LocationRepositoryImpl implements LocationRepository {
-  final LocationLocalDataSource localDataSource;
+  LocationRepositoryImpl(this._dataSource);
 
-  LocationRepositoryImpl(this.localDataSource);
+  final LocationDataSource _dataSource;
 
   @override
-  Future<Position> getCurrentLocation() async {
-    return await localDataSource.getCurrentLocation();
+  Future<Position> getCurrentLocation() {
+    return _dataSource.getCurrentLocation();
   }
 }
