@@ -11,7 +11,6 @@ class SupabaseClientProvider {
     required String supabaseUrl,
     required String supabaseAnonKey,
   }) {
-    final client = SupabaseClient(supabaseUrl, supabaseAnonKey);
-    instance = SupabaseClientProvider._(client);
+    instance = SupabaseClientProvider._(Supabase.instance.client);
   }
 }
