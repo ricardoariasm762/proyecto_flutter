@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -24,9 +26,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   LatLng? currentPosition;
   LatLng? destination;
+  
+  String originTitle = "Obteniendo ubicación...";
+  String destinationTitle = "Seleccione destino";
+  num? routeDistance;
+  num? routeDuration;
+
   List<LatLng> routePoints = [];
   int _selectedIndex = 0;
   final osrm = Osrm();
+
+  Future<void> _getAddress(LatLng point, bool isOrigin) async {
+    final url = Uri.parse("https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}");
+    try {
+      final response = await http.get(url, headers: {'User-Agent': 'ridematch_community_app'});
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final displayName = data['display_name'] ?? "";
+        final parts = displayName.split(',');
+        final concise = parts.length > 2 ? "${parts[0]}, ${parts[1]}" : displayName;
+        if (mounted) {
+          setState(() {
+            if (isOrigin) {
+              originTitle = concise;
+            } else {
+              destinationTitle = concise;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
 
   Future<void> fetchRoute(LatLng start, LatLng end) async {
     final options = RouteRequest(
@@ -35,10 +65,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     try {
       final route = await osrm.route(options);
+      final distance = route.routes.first.distance;
+      final duration = route.routes.first.duration;
+
       final coords = route.routes.first.geometry?.lineString?.coordinates;
       if (coords != null && mounted) {
         setState(() {
           routePoints = coords.map((c) => LatLng(c.$2, c.$1)).toList();
+          routeDistance = distance;
+          routeDuration = duration;
         });
         
         // Ajustar la cámara para ver ambos puntos si la ruta fue exitosa
@@ -71,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           currentPosition = LatLng(position.latitude, position.longitude);
         });
+        _getAddress(currentPosition!, true);
       }
     } catch (e) {
       if (mounted) {
@@ -133,8 +169,12 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: (_, point) {
               setState(() {
                 destination = point;
+                destinationTitle = "Calculando ubicación...";
                 routePoints = [];
+                routeDistance = null;
+                routeDuration = null;
               });
+              _getAddress(point, false);
               if (currentPosition != null) {
                 fetchRoute(currentPosition!, destination!);
               }
@@ -182,29 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        Positioned(
-          top: 16,
-          left: 16,
-          right: 16,
-          child: Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
-              ),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Text(
-              destination == null
-                  ? "Selecciona destino para publicar viaje comunitario"
-                  : "Destino listo. Podran unirse hasta 4 personas",
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onPrimary,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
+        _buildRouteInfoCard(),
         Positioned(
           left: 0,
           right: 0,
@@ -368,6 +386,94 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildRouteInfoCard() {
+    return Positioned(
+      top: 16,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildAddressRow(Icons.location_on, "Desde", originTitle, true),
+            const SizedBox(height: 12),
+            _buildAddressRow(Icons.location_on, "Hacia", destinationTitle, false),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: destination == null ? null : createRide,
+                  icon: const Icon(Icons.directions_car_filled_rounded),
+                  label: const Text("Publicar Viaje"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                if (routeDuration != null && routeDistance != null)
+                  Expanded(
+                    child: Text(
+                      "| ${(routeDuration! / 3600).toStringAsFixed(1)} h - ${(routeDistance! / 1000).toStringAsFixed(1)} km",
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddressRow(IconData icon, String label, String address, bool isOrigin) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: isOrigin ? Theme.of(context).colorScheme.onSurfaceVariant : Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "$label: $address",
+              style: TextStyle(
+                color: address.contains("Cargando") || address.contains("Seleccione") || address.contains("Obteniendo") 
+                    ? Theme.of(context).colorScheme.onSurfaceVariant 
+                    : Theme.of(context).colorScheme.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pages = [
@@ -506,29 +612,47 @@ class _RideCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "$members/5 personas • Cupos: $seatsLeft",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w600,
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "$members/5 personas • Cupos: $seatsLeft",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    "Total: \$${totalFare.toStringAsFixed(0)} • Pago: \$${splitFare.toStringAsFixed(0)}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurface,
-                      fontWeight: FontWeight.w800,
+                    const SizedBox(height: 2),
+                    Text(
+                      "Creador del viaje #${ride['id'] ?? 'N/A'}",
+                      style: TextStyle(fontSize: 10, color: colorScheme.onSurfaceVariant),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-              Row(
+              Expanded(
+                flex: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      "Tarifa",
+                      style: TextStyle(fontSize: 10, color: Colors.grey),
+                    ),
+                    Text(
+                      "${(totalFare).toStringAsFixed(0)} COP",
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: colorScheme.primary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
                 children: [
                   if (onOpenChat != null)
                     OutlinedButton.icon(
@@ -558,8 +682,6 @@ class _RideCard extends StatelessWidget {
                   ],
                 ],
               ),
-            ],
-          ),
         ],
       ),
     );
