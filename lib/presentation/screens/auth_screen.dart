@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_login/flutter_login.dart';
 import '../../domain/repositories/auth_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/supabase/supabase_client_provider.dart';
+import '../../data/datasources/location_local_data_source.dart';
+import '../../data/datasources/ride_remote_data_source.dart';
+import '../../data/repositories/location_repository_impl.dart';
+import '../../data/repositories/ride_repository_impl.dart';
+import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key, required this.authRepository});
@@ -11,152 +19,107 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _isLogin = true;
-  bool _isLoading = false;
 
-  Future<void> _submit() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor completa todos los campos')),
-      );
-      return;
+  Future<String?> _authUser(LoginData data) async {
+    // Mock user temporal para que puedas ingresar sin Supabase configurado
+    if (data.name == 'admin@admin.com' && data.password == '123456') {
+      return null; // El valor nulo indica éxito
     }
-
-    setState(() => _isLoading = true);
 
     try {
-      if (_isLogin) {
-        await widget.authRepository.signIn(email, password);
-      } else {
-        await widget.authRepository.signUp(email, password);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Registro exitoso. Revisa tu email si es necesario.',
-              ),
-            ),
-          );
-        }
-      }
+      await widget.authRepository.signIn(data.name, data.password);
+      return null;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      return 'Error o conexión fallida. Sugerencia: Usa admin@admin.com y contraseña 123456';
     }
+  }
+
+  Future<String?> _signupUser(SignupData data) async {
+    if (data.name == 'admin@admin.com') return 'El usuario ya existe';
+    
+    try {
+      await widget.authRepository.signUp(data.name!, data.password!);
+      return null;
+    } catch (e) {
+       return 'Error al registrar. Sugerencia: Inicia sesión con admin@admin.com';
+    }
+  }
+
+  Future<String> _recoverPassword(String name) async {
+    return 'Revisa tu correo para recuperar la contraseña';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF5128A9), Color(0xFF8B59FF)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              elevation: 8,
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.directions_car_rounded,
-                      size: 64,
-                      color: Color(0xFF6D3FD1),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _isLogin ? 'Iniciar Sesión' : 'Crear Cuenta',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF4A148C),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      obscureText: true,
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _submit,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: const Color(0xFF6D3FD1),
-                        ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(_isLogin ? 'Entrar' : 'Registrarse'),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () => setState(() => _isLogin = !_isLogin),
-                      child: Text(
-                        _isLogin
-                            ? '¿No tienes cuenta? Regístrate'
-                            : '¿Ya tienes cuenta? Inicia sesión',
-                        style: const TextStyle(color: Color(0xFF6D3FD1)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+    return FlutterLogin(
+      title: 'RideMatch',
+      onLogin: _authUser,
+      onSignup: _signupUser,
+      onRecoverPassword: _recoverPassword,
+      onSubmitAnimationCompleted: () {
+        // Redirigir al HomeScreen con las dependencias necesarias cuando el login es válido (ej. mock)
+        final rideRemoteDataSource = RideRemoteDataSource(
+          SupabaseClientProvider.instance.client,
+        );
+        final rideRepository = RideRepositoryImpl(rideRemoteDataSource);
+        
+        final locationLocalDataSource = LocationLocalDataSource();
+        final locationRepository = LocationRepositoryImpl(locationLocalDataSource);
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(
+              rideRepository: rideRepository,
+              locationRepository: locationRepository,
             ),
           ),
+        );
+      },
+      theme: LoginTheme(
+        primaryColor: Colors.deepPurple,
+        accentColor: Colors.orange,
+        errorColor: Colors.red,
+        pageColorLight: Colors.deepPurple[300],
+        pageColorDark: Colors.deepPurple[800],
+        titleStyle: const TextStyle(
+          color: Colors.orange,
+          fontFamily: 'OpenSans',
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+        ),
+        bodyStyle: TextStyle(
+          fontFamily: 'NotoSans',
+          fontSize: 12,
+          fontWeight: FontWeight.normal,
+          color: Colors.deepPurple[300],
+        ),
+        textFieldStyle: const TextStyle(
+          color: Colors.deepPurple,
+          fontFamily: 'OpenSans',
+        ),
+        buttonTheme: const LoginButtonTheme(
+          splashColor: Colors.deepPurple,
+          backgroundColor: Colors.orange,
+          highlightColor: Colors.deepPurpleAccent,
+          elevation: 9.0,
+          highlightElevation: 6.0,
         ),
       ),
+      messages: LoginMessages(
+        userHint: 'Email',
+        passwordHint: 'Contraseña',
+        confirmPasswordHint: 'Confirmar Contraseña',
+        loginButton: 'ENTRAR',
+        signupButton: 'REGISTRARSE',
+        forgotPasswordButton: '¿Olvidaste tu contraseña?',
+        recoverPasswordButton: 'RECUPERAR',
+        goBackButton: 'VOLVER',
+        confirmPasswordError: 'Las contraseñas no coinciden',
+        recoverPasswordIntro: 'Recupera tu contraseña',
+        recoverPasswordDescription:
+            'Te enviaremos un enlace a tu correo para que restaures tu acceso.',
+        recoverPasswordSuccess: 'Enlace enviado exitosamente',
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 }
