@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:osrm/osrm.dart';
 import 'chat_screen.dart';
 import '../services/location_service.dart';
 import '../services/ride_service.dart';
@@ -23,7 +24,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   LatLng? currentPosition;
   LatLng? destination;
+  List<LatLng> routePoints = [];
   int _selectedIndex = 0;
+  final osrm = Osrm();
+
+  Future<void> fetchRoute(LatLng start, LatLng end) async {
+    final options = RouteRequest(
+      coordinates: [(start.longitude, start.latitude), (end.longitude, end.latitude)],
+      geometries: OsrmGeometries.geojson,
+    );
+    try {
+      final route = await osrm.route(options);
+      final coords = route.routes.first.geometry?.lineString?.coordinates;
+      if (coords != null && mounted) {
+        setState(() {
+          routePoints = coords.map((c) => LatLng(c.$2, c.$1)).toList();
+        });
+      }
+    } catch (_) {
+      // Ignorar e intentar trazar línea recta o nada
+    }
+  }
   late Stream<List<Map<String, dynamic>>> _communityRides;
 
   @override
@@ -99,13 +120,31 @@ class _HomeScreenState extends State<HomeScreen> {
           options: MapOptions(
             initialCenter: currentPosition!,
             initialZoom: 15,
-            onTap: (_, point) => setState(() => destination = point),
+            onTap: (_, point) {
+              setState(() {
+                destination = point;
+                routePoints = [];
+              });
+              if (currentPosition != null) {
+                fetchRoute(currentPosition!, destination!);
+              }
+            },
           ),
           children: [
             TileLayer(
               urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
               userAgentPackageName: 'com.ridematch.communityapp',
             ),
+            if (routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: routePoints,
+                    color: Theme.of(context).colorScheme.primary,
+                    strokeWidth: 4.0,
+                  ),
+                ],
+              ),
             MarkerLayer(
               markers: [
                 Marker(
