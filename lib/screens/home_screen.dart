@@ -514,7 +514,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _RideCard extends StatelessWidget {
+final Map<String, String> _addressCache = {};
+
+class _RideCard extends StatefulWidget {
   const _RideCard({
     required this.ride,
     required this.members,
@@ -534,13 +536,61 @@ class _RideCard extends StatelessWidget {
   final VoidCallback? onOpenChat;
 
   @override
+  State<_RideCard> createState() => _RideCardState();
+}
+
+class _RideCardState extends State<_RideCard> {
+  String? originName;
+  String? destName;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAddresses();
+  }
+
+  Future<void> _fetchAddresses() async {
+    final oLat = (widget.ride['origin_lat'] as num?)?.toDouble();
+    final oLng = (widget.ride['origin_lng'] as num?)?.toDouble();
+    final dLat = (widget.ride['dest_lat'] as num?)?.toDouble();
+    final dLng = (widget.ride['dest_lng'] as num?)?.toDouble();
+
+    originName = await _resolveAddress(oLat, oLng);
+    destName = await _resolveAddress(dLat, dLng);
+    if (mounted) setState(() {});
+  }
+
+  Future<String?> _resolveAddress(double? lat, double? lng) async {
+    if (lat == null || lng == null) return null;
+    final key = "$lat,$lng";
+    if (_addressCache.containsKey(key)) return _addressCache[key];
+
+    final url = Uri.parse("https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng");
+    try {
+      final res = await http.get(url, headers: {'User-Agent': 'ridematch_community_app_cards'});
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        final displayName = data['display_name'] ?? "";
+        final parts = displayName.split(',');
+        final concise = parts.length > 2 ? "${parts[0]}, ${parts[1]}" : displayName;
+        _addressCache[key] = concise;
+        return concise;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final oLat = (ride['origin_lat'] as num?)?.toDouble();
-    final oLng = (ride['origin_lng'] as num?)?.toDouble();
-    final dLat = (ride['dest_lat'] as num?)?.toDouble();
-    final dLng = (ride['dest_lng'] as num?)?.toDouble();
-    final status = (ride['status'] ?? 'waiting').toString();
+    final status = (widget.ride['status'] ?? 'waiting').toString();
     final isPending = status == 'pending' || status == 'esperando usuario';
+
+    final ride = widget.ride;
+    final members = widget.members;
+    final seatsLeft = widget.seatsLeft;
+    final totalFare = widget.totalFare;
+    final onOpenChat = widget.onOpenChat;
+    final onJoin = widget.onJoin;
 
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
@@ -600,13 +650,17 @@ class _RideCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            "Origen: ${(oLat ?? 0).toStringAsFixed(4)}, ${(oLng ?? 0).toStringAsFixed(4)}",
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            "Origen: ${originName ?? "Traduciendo mapa..."}",
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
           const SizedBox(height: 4),
           Text(
-            "Destino: ${(dLat ?? 0).toStringAsFixed(4)}, ${(dLng ?? 0).toStringAsFixed(4)}",
-            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+            "Destino: ${destName ?? "Traduciendo mapa..."}",
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
           const SizedBox(height: 12),
           Row(
