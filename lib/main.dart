@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flex_color_scheme/flex_color_scheme.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'theme/theme_controller.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -20,55 +24,79 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'RideMatch Comunidad',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF6F1FF),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6D3FD1),
-          brightness: Brightness.light,
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
-        ),
-        cardTheme: const CardThemeData(
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5B32B4),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+    return AnimatedBuilder(
+      animation: ThemeController.instance,
+      builder: (context, _) {
+        final themeCtrl = ThemeController.instance;
+        
+        final String? fontFamily = GoogleFonts.notoSans().fontFamily;
+        const TextTheme textTheme = TextTheme(
+          displayMedium: TextStyle(fontSize: 41),
+          displaySmall: TextStyle(fontSize: 36),
+          labelSmall: TextStyle(fontSize: 11, letterSpacing: 0.5),
+        );
+
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'RideMatch Comunidad',
+          themeMode: themeCtrl.themeMode,
+          theme: FlexThemeData.light(
+            scheme: themeCtrl.usedScheme,
+            useMaterial3: themeCtrl.useMaterial3,
+            surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+            blendLevel: 8,
+            appBarStyle: FlexAppBarStyle.primary,
+            appBarOpacity: 0.94,
+            appBarElevation: 0.5,
+            transparentStatusBar: true,
+            tabBarStyle: FlexTabBarStyle.forAppBar,
+            fontFamily: fontFamily,
+            textTheme: textTheme,
+            primaryTextTheme: textTheme,
+            subThemesData: const FlexSubThemesData(
+              interactionEffects: true,
+              defaultRadius: null,
+              bottomSheetRadius: 24,
+              useMaterial3Typography: true,
+              inputDecoratorBorderType: FlexInputBorderType.outline,
+              inputDecoratorIsFilled: true,
+              inputDecoratorUnfocusedHasBorder: false,
+              thickBorderWidth: 1.5,
+              thinBorderWidth: 1,
             ),
+            visualDensity: FlexColorScheme.comfortablePlatformDensity,
           ),
-        ),
-        navigationBarTheme: NavigationBarThemeData(
-          indicatorColor: const Color(0x2A6D3FD1),
-          backgroundColor: Colors.white,
-          labelTextStyle: WidgetStateProperty.all(
-            const TextStyle(fontWeight: FontWeight.w700),
+          darkTheme: FlexThemeData.dark(
+            scheme: themeCtrl.usedScheme,
+            useMaterial3: themeCtrl.useMaterial3,
+            surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
+            blendLevel: 8,
+            appBarStyle: FlexAppBarStyle.background,
+            appBarOpacity: 0.94,
+            appBarElevation: 0.5,
+            transparentStatusBar: true,
+            tabBarStyle: FlexTabBarStyle.forAppBar,
+            fontFamily: fontFamily,
+            textTheme: textTheme,
+            primaryTextTheme: textTheme,
+            subThemesData: const FlexSubThemesData(
+              interactionEffects: true,
+              defaultRadius: null,
+              bottomSheetRadius: 24,
+              useMaterial3Typography: true,
+              inputDecoratorBorderType: FlexInputBorderType.outline,
+              inputDecoratorIsFilled: true,
+              inputDecoratorUnfocusedHasBorder: false,
+              thickBorderWidth: 1.5,
+              thinBorderWidth: 1,
+            ),
+            visualDensity: FlexColorScheme.comfortablePlatformDensity,
           ),
-        ),
-      ),
-      home: StreamBuilder<AuthState>(
-        stream: Supabase.instance.client.auth.onAuthStateChange,
-        builder: (context, snapshot) {
-          final session =
-              snapshot.data?.session ??
-              Supabase.instance.client.auth.currentSession;
-          if (session != null) {
-            return const HomeScreen();
-          } else {
-            return const AuthScreen();
-          }
-        },
-      ),
+          home: Supabase.instance.client.auth.currentSession != null
+              ? const HomeScreen()
+              : const AuthScreen(),
+        );
+      },
     );
   }
 }
