@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'chat_screen.dart';
 import '../services/location_service.dart';
 import '../services/ride_service.dart';
 import '../services/auth_service.dart';
@@ -228,6 +229,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       seatsLeft: seats,
                       totalFare: total,
                       splitFare: total / members,
+                        onOpenChat: () {
+                          final rideId = (ride['id'] ?? '--').toString();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(rideId: rideId),
+                            ),
+                          );
+                        },
                       onJoin: () async {
                         final rideId = (ride['id'] ?? '').toString();
                         if (rideId.isEmpty) return;
@@ -322,6 +331,7 @@ class _RideCard extends StatelessWidget {
     required this.totalFare,
     required this.splitFare,
     this.onJoin,
+    this.onOpenChat,
   });
 
   final Map<String, dynamic> ride;
@@ -330,6 +340,7 @@ class _RideCard extends StatelessWidget {
   final double totalFare;
   final double splitFare;
   final VoidCallback? onJoin;
+  final VoidCallback? onOpenChat;
 
   @override
   Widget build(BuildContext context) {
@@ -431,19 +442,36 @@ class _RideCard extends StatelessWidget {
                   ),
                 ],
               ),
-              if (!isPending && onJoin != null)
-                ElevatedButton(
-                  onPressed: onJoin,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
+              Row(
+                children: [
+                  if (onOpenChat != null)
+                    OutlinedButton.icon(
+                      onPressed: onOpenChat,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        minimumSize: const Size(0, 32),
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                      icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                      label: const Text("Chat"),
                     ),
-                    minimumSize: const Size(0, 32),
-                    textStyle: const TextStyle(fontSize: 12),
-                  ),
-                  child: const Text("Unirme"),
-                ),
+                  if (!isPending && onJoin != null) ...[
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: onJoin,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                        minimumSize: const Size(0, 32),
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                      child: const Text("Unirme"),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ],
