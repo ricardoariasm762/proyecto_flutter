@@ -40,6 +40,16 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           routePoints = coords.map((c) => LatLng(c.$2, c.$1)).toList();
         });
+        
+        // Ajustar la cámara para ver ambos puntos si la ruta fue exitosa
+        if (routePoints.isNotEmpty) {
+          mapController.fitCamera(
+            CameraFit.bounds(
+              bounds: LatLngBounds.fromPoints([start, end, ...routePoints]),
+              padding: const EdgeInsets.all(50.0),
+            ),
+          );
+        }
       }
     } catch (_) {
       // Ignorar e intentar trazar línea recta o nada
