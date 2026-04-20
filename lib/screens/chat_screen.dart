@@ -28,11 +28,12 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final title = widget.rideId == null ? 'Chat' : 'Chat • Ruta #${widget.rideId}';
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF4A148C),
+        backgroundColor: colorScheme.surfaceContainerHighest,
+        foregroundColor: colorScheme.onSurface,
         elevation: 1,
       ),
       body: Column(
@@ -49,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
-                      color: isMe ? const Color(0xFF6D3FD1) : const Color(0xFFF2E8FF),
+                      color: isMe ? colorScheme.primary : colorScheme.primaryContainer,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
@@ -64,7 +65,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Text(
                       mensajes[index],
                       style: TextStyle(
-                        color: isMe ? Colors.white : const Color(0xFF4A148C),
+                        color: isMe ? colorScheme.onPrimary : colorScheme.onPrimaryContainer,
                         fontSize: 15,
                       ),
                     ),
@@ -76,10 +77,10 @@ class _ChatScreenState extends State<ChatScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0x0D000000),
+                  color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -99,7 +100,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           vertical: 14,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF5F5F5),
+                        fillColor: colorScheme.surfaceContainerHighest,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
@@ -111,10 +112,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   const SizedBox(width: 12),
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: const Color(0xFF6D3FD1),
+                    backgroundColor: colorScheme.primary,
                     child: IconButton(
                       onPressed: _sendMessage,
-                      icon: const Icon(Icons.send_rounded, color: Colors.white),
+                      icon: Icon(Icons.send_rounded, color: colorScheme.onPrimary),
                     ),
                   ),
                 ],

@@ -5,6 +5,8 @@ import 'chat_screen.dart';
 import '../services/location_service.dart';
 import '../services/ride_service.dart';
 import '../services/auth_service.dart';
+import 'theme_tab.dart';
+import 'auth_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,9 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   point: currentPosition!,
                   width: 50,
                   height: 50,
-                  child: const Icon(
+                  child: Icon(
                     Icons.my_location_rounded,
-                    color: Color(0xFF6E41D8),
+                    color: Theme.of(context).colorScheme.primary,
                     size: 40,
                   ),
                 ),
@@ -107,9 +109,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     point: destination!,
                     width: 50,
                     height: 50,
-                    child: const Icon(
+                    child: Icon(
                       Icons.location_pin,
-                      color: Color(0xFFB04CFF),
+                      color: Theme.of(context).colorScheme.secondary,
                       size: 42,
                     ),
                   ),
@@ -124,8 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF5A2DB1), Color(0xFF8A55FF)],
+              gradient: LinearGradient(
+                colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
               ),
               borderRadius: BorderRadius.circular(18),
             ),
@@ -133,8 +135,8 @@ class _HomeScreenState extends State<HomeScreen> {
               destination == null
                   ? "Selecciona destino para publicar viaje comunitario"
                   : "Destino listo. Podran unirse hasta 4 personas",
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -146,9 +148,9 @@ class _HomeScreenState extends State<HomeScreen> {
           bottom: 0,
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFDFBFF),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -159,9 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                 ),
                 const SizedBox(height: 6),
-                const Text(
+                Text(
                   "Modelo comunitario: 5 cupos maximos y division de pago.",
-                  style: TextStyle(color: Color(0xFF665489)),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -211,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 4),
               Text(
                 "${rides.length} rutas activas ahora",
-                style: const TextStyle(color: Color(0xFF67568A)),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
               const SizedBox(height: 14),
               if (rides.isEmpty)
@@ -270,6 +272,12 @@ class _HomeScreenState extends State<HomeScreen> {
             subtitle: "Salir de tu cuenta",
             onTap: () async {
               await authService.signOut();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthScreen()),
+                  (route) => false,
+                );
+              }
             },
           ),
         ],
@@ -283,6 +291,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _buildTripsTab(),
       _buildCommunityTab(),
       _buildProfileTab(),
+      const ThemeTab(),
     ];
     return Scaffold(
       body: pages[_selectedIndex],
@@ -316,6 +325,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.person_outline_rounded),
             selectedIcon: Icon(Icons.person_rounded),
             label: "Perfil",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.palette_outlined),
+            selectedIcon: Icon(Icons.palette_rounded),
+            label: "Temas",
           ),
         ],
       ),
@@ -351,13 +365,14 @@ class _RideCard extends StatelessWidget {
     final status = (ride['status'] ?? 'waiting').toString();
     final isPending = status == 'pending' || status == 'esperando usuario';
 
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isPending ? const Color(0xFFFFE0B2) : const Color(0xFFEADFFF),
+          color: isPending ? colorScheme.errorContainer : colorScheme.surfaceContainerHighest,
           width: isPending ? 2 : 1,
         ),
       ),
@@ -369,13 +384,13 @@ class _RideCard extends StatelessWidget {
               CircleAvatar(
                 radius: 16,
                 backgroundColor: isPending
-                    ? const Color(0xFFFFF3E0)
-                    : const Color(0xFFF2E8FF),
+                    ? colorScheme.errorContainer
+                    : colorScheme.primaryContainer,
                 child: Icon(
                   isPending ? Icons.hourglass_top_rounded : Icons.route,
                   color: isPending
-                      ? const Color(0xFFE65100)
-                      : const Color(0xFF673AB7),
+                      ? colorScheme.error
+                      : colorScheme.primary,
                 ),
               ),
               const SizedBox(width: 8),
@@ -389,16 +404,16 @@ class _RideCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: isPending
-                      ? const Color(0xFFFFE0B2)
-                      : const Color(0x1A6D3FD1),
+                      ? colorScheme.errorContainer
+                      : colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   isPending ? "ESPERANDO USUARIO" : status.toUpperCase(),
                   style: TextStyle(
                     color: isPending
-                        ? const Color(0xFFE65100)
-                        : const Color(0xFF6B42C7),
+                        ? colorScheme.error
+                        : colorScheme.primary,
                     fontWeight: FontWeight.w800,
                     fontSize: 10,
                   ),
@@ -409,12 +424,12 @@ class _RideCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             "Origen: ${(oLat ?? 0).toStringAsFixed(4)}, ${(oLng ?? 0).toStringAsFixed(4)}",
-            style: const TextStyle(fontSize: 12, color: Color(0xFF645886)),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 4),
           Text(
             "Destino: ${(dLat ?? 0).toStringAsFixed(4)}, ${(dLng ?? 0).toStringAsFixed(4)}",
-            style: const TextStyle(fontSize: 12, color: Color(0xFF645886)),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 12),
           Row(
@@ -425,18 +440,18 @@ class _RideCard extends StatelessWidget {
                 children: [
                   Text(
                     "$members/5 personas • Cupos: $seatsLeft",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF4F3F76),
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     "Total: \$${totalFare.toStringAsFixed(0)} • Pago: \$${splitFare.toStringAsFixed(0)}",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF4F3F76),
+                      color: colorScheme.onSurface,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -485,26 +500,27 @@ class _EmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Column(
+      child: Column(
         children: [
           Icon(
             Icons.hourglass_empty_rounded,
             size: 34,
-            color: Color(0xFF7445D3),
+            color: colorScheme.primary,
           ),
-          SizedBox(height: 8),
-          Text("Todavia no hay viajes", style: TextStyle(fontWeight: FontWeight.w700)),
-          SizedBox(height: 4),
+          const SizedBox(height: 8),
+          const Text("Todavia no hay viajes", style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
           Text(
             "Crea uno desde la pestaña Viajes y aparecera en esta lista.",
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFF675A87)),
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
           ),
         ],
       ),
@@ -519,20 +535,21 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF5128A9), Color(0xFF8B59FF)],
+        gradient: LinearGradient(
+          colors: [colorScheme.primary, colorScheme.secondary],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
-          const CircleAvatar(
+          CircleAvatar(
             radius: 26,
-            backgroundColor: Colors.white24,
-            child: Icon(Icons.person, color: Colors.white, size: 30),
+            backgroundColor: colorScheme.onPrimary.withValues(alpha: 0.2),
+            child: Icon(Icons.person, color: colorScheme.onPrimary, size: 30),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -541,14 +558,14 @@ class _ProfileCard extends StatelessWidget {
               children: [
                 Text(
                   email.contains('@') ? email.split('@')[0] : email,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colorScheme.onPrimary,
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(email, style: const TextStyle(color: Color(0xFFE8DBFF))),
+                Text(email, style: TextStyle(color: colorScheme.onPrimary.withValues(alpha: 0.8))),
               ],
             ),
           ),
@@ -573,21 +590,22 @@ class _OptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
             CircleAvatar(
               radius: 20,
-              backgroundColor: const Color(0xFFF2E8FF),
-              child: Icon(icon, color: const Color(0xFF6338BF)),
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(icon, color: colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -597,12 +615,12 @@ class _OptionTile extends StatelessWidget {
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF6A5C89)),
+                    style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Colors.black45),
+            Icon(Icons.chevron_right_rounded, color: colorScheme.onSurface.withValues(alpha: 0.5)),
           ],
         ),
       ),
