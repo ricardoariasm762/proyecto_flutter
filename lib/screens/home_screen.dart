@@ -34,10 +34,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> getLocation() async {
-    final position = await locationService.getCurrentLocation();
-    setState(() {
-      currentPosition = LatLng(position.latitude, position.longitude);
-    });
+    try {
+      final position = await locationService.getCurrentLocation();
+      if (mounted) {
+        setState(() {
+          currentPosition = LatLng(position.latitude, position.longitude);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Es necesario otorgar permisos de ubicación para buscar viajes"),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> createRide() async {
@@ -91,6 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             TileLayer(
               urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              userAgentPackageName: 'com.ridematch.communityapp',
             ),
             MarkerLayer(
               markers: [
@@ -146,8 +160,26 @@ class _HomeScreenState extends State<HomeScreen> {
           left: 0,
           right: 0,
           bottom: 0,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16, bottom: 16),
+                child: FloatingActionButton.extended(
+                  onPressed: () async {
+                    await getLocation();
+                    if (currentPosition != null) {
+                      mapController.move(currentPosition!, 15);
+                    }
+                  },
+                  icon: const Icon(Icons.gps_fixed_rounded),
+                  label: const Text("Centrar"),
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
@@ -179,6 +211,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+          ),
+            ],
           ),
         ),
       ],
@@ -295,18 +329,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
     return Scaffold(
       body: pages[_selectedIndex],
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () async {
-                await getLocation();
-                if (currentPosition != null) {
-                  mapController.move(currentPosition!, 15);
-                }
-              },
-              icon: const Icon(Icons.gps_fixed_rounded),
-              label: const Text("Centrar"),
-            )
-          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) => setState(() => _selectedIndex = index),
