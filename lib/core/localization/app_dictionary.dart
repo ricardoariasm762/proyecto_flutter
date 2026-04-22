@@ -4,8 +4,11 @@ class AppDictionary {
       'getting_location': 'Getting location...',
       'select_destination': 'Select destination',
       'calculating_location': 'Calculating location...',
-      'location_permission_error': 'Location permissions are required to find rides',
+      'location_permission_error':
+          'Location permissions are required to find rides',
       'ride_created': 'Community ride created',
+      'ride_create_failed': 'Could not create ride',
+      'auth_required': 'Please sign in again to publish a ride',
       'center': 'Center',
       'available_seats': 'Available seats',
       'max_participants': 'Maximum 5 participants',
@@ -13,7 +16,8 @@ class AppDictionary {
       'active_routes_now': 'active routes now',
       'no_rides_loaded': 'Could not load rides',
       'no_rides_yet': 'No rides yet',
-      'create_one_from_trips': 'Create one from the Trips tab and it will appear here.',
+      'create_one_from_trips':
+          'Create one from the Trips tab and it will appear here.',
       'route': 'Route',
       'origin': 'Origin',
       'destination': 'Destination',
@@ -31,6 +35,10 @@ class AppDictionary {
       'to': 'To',
       'publish_ride': 'Publish Ride',
       'community_model': 'Community model: max 5 seats and split payment.',
+      'my_trips': 'My trips',
+      'my_trips_subtitle': 'Trips you published and who joined',
+      'no_my_trips': 'You have not published any trips yet',
+      'no_join_requests': 'No join requests yet',
       'user': 'User',
       'logout': 'Logout',
       'logout_subtitle': 'Sign out of your account',
@@ -52,7 +60,8 @@ class AppDictionary {
       'spanish': 'Spanish',
       'change_language': 'Change app language',
       'visual_settings': 'Visual Settings',
-      'visual_settings_desc': 'Customize the app colors and style using FlexColorScheme.',
+      'visual_settings_desc':
+          'Customize the app colors and style using FlexColorScheme.',
       'dark_mode_desc': 'Toggle dark/light background',
       'use_material3': 'Use Material 3',
       'use_material3_desc': 'Enable modern design and rounded borders',
@@ -64,8 +73,11 @@ class AppDictionary {
       'getting_location': 'Obteniendo ubicación...',
       'select_destination': 'Seleccione destino',
       'calculating_location': 'Calculando ubicación...',
-      'location_permission_error': 'Es necesario otorgar permisos de ubicación para buscar viajes',
+      'location_permission_error':
+          'Es necesario otorgar permisos de ubicación para buscar viajes',
       'ride_created': 'Viaje comunitario creado',
+      'ride_create_failed': 'No se pudo crear el viaje',
+      'auth_required': 'Inicia sesión nuevamente para publicar un viaje',
       'center': 'Centrar',
       'available_seats': 'Lugares disponibles',
       'max_participants': 'Máximo 5 participantes',
@@ -73,7 +85,8 @@ class AppDictionary {
       'active_routes_now': 'rutas activas ahora',
       'no_rides_loaded': 'No se pudieron cargar viajes',
       'no_rides_yet': 'Todavía no hay viajes',
-      'create_one_from_trips': 'Crea uno desde la pestaña Viajes y aparecerá en esta lista.',
+      'create_one_from_trips':
+          'Crea uno desde la pestaña Viajes y aparecerá en esta lista.',
       'route': 'Ruta',
       'origin': 'Origen',
       'destination': 'Destino',
@@ -90,7 +103,12 @@ class AppDictionary {
       'from': 'Desde',
       'to': 'Hacia',
       'publish_ride': 'Publicar Viaje',
-      'community_model': 'Modelo comunitario: máximo 5 cupos y división de pago.',
+      'community_model':
+          'Modelo comunitario: máximo 5 cupos y división de pago.',
+      'my_trips': 'Mis viajes',
+      'my_trips_subtitle': 'Viajes que publicas y quién se une',
+      'no_my_trips': 'Todavía no has publicado viajes',
+      'no_join_requests': 'Todavía no hay solicitudes',
       'user': 'Usuario',
       'logout': 'Cerrar Sesión',
       'logout_subtitle': 'Salir de tu cuenta',
@@ -112,7 +130,8 @@ class AppDictionary {
       'spanish': 'Español',
       'change_language': 'Cambiar idioma de la app',
       'visual_settings': 'Configuración Visual',
-      'visual_settings_desc': 'Personaliza los colores y el estilo de la aplicación utilizando FlexColorScheme.',
+      'visual_settings_desc':
+          'Personaliza los colores y el estilo de la aplicación utilizando FlexColorScheme.',
       'dark_mode_desc': 'Alternar fondo oscuro/claro',
       'use_material3': 'Usar Material 3',
       'use_material3_desc': 'Habilitar diseño y bordes redondeados modernos',
@@ -123,7 +142,8 @@ class AppDictionary {
   };
 
   static String text(String currentLanguage, String key) {
-    final langDict = _localizedValues[currentLanguage] ?? _localizedValues['es']!;
+    final langDict =
+        _localizedValues[currentLanguage] ?? _localizedValues['es']!;
     return langDict[key] ?? key;
   }
 }

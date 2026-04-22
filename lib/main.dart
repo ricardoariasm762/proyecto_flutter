@@ -105,9 +105,13 @@ class MyApp extends StatelessWidget {
             ),
             visualDensity: FlexColorScheme.comfortablePlatformDensity,
           ),
-          home: Supabase.instance.client.auth.currentSession != null
-              ? const HomeScreen()
-              : const AuthScreen(),
+          home: StreamBuilder<AuthState>(
+            stream: Supabase.instance.client.auth.onAuthStateChange,
+            builder: (context, snapshot) {
+              final session = snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
+              return session != null ? const HomeScreen() : const AuthScreen();
+            },
+          ),
         );
       },
     );

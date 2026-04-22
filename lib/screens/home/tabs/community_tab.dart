@@ -1,6 +1,7 @@
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
 import '../../../services/ride_service.dart';
@@ -22,7 +23,9 @@ class _CommunityTabState extends State<CommunityTab> {
   @override
   void initState() {
     super.initState();
-    _communityRides = _rideService.getRidesStream();
+    final userId = Supabase.instance.client.auth.currentSession?.user.id ??
+        Supabase.instance.client.auth.currentUser?.id;
+    _communityRides = _rideService.getRidesStreamExcludingUser(excludeUserId: userId);
   }
 
   int _rideMembers(Map<String, dynamic> ride) {

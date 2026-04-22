@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
 
@@ -27,6 +29,38 @@ class RideCard extends StatelessWidget {
   final VoidCallback? onOpenChat;
   final VoidCallback? onRate;
 
+  static final Map<String, Future<String>> _destinationCache = {};
+
+  static String _coordLabel(double lat, double lng) {
+    return "${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}";
+  }
+
+  static Future<String> _resolveDestinationTitle(double lat, double lng) {
+    final key = "${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}";
+    return _destinationCache.putIfAbsent(key, () async {
+      final url = Uri.parse(
+        "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng",
+      );
+      try {
+        final response = await http.get(
+          url,
+          headers: {'User-Agent': 'ridematch_community_app'},
+        );
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          final displayName = (data['display_name'] ?? '').toString();
+          if (displayName.trim().isEmpty) return _coordLabel(lat, lng);
+          final parts = displayName.split(',');
+          final concise = parts.length > 2
+              ? "${parts[0]}, ${parts[1]}"
+              : displayName;
+          return concise.trim().isEmpty ? _coordLabel(lat, lng) : concise;
+        }
+      } catch (_) {}
+      return _coordLabel(lat, lng);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageController>().currentLanguage;
@@ -37,14 +71,20 @@ class RideCard extends StatelessWidget {
     final dLng = (ride['dest_lng'] as num?)?.toDouble();
     final status = (ride['status'] ?? 'waiting').toString();
     final statusRaw = status.toLowerCase();
-    
-    final isPending = statusRaw == 'pending' || statusRaw == 'esperando usuario';
+    final destinationFuture = (dLat == null || dLng == null)
+        ? Future.value('--')
+        : _resolveDestinationTitle(dLat, dLng);
+
+    final isPending =
+        statusRaw == 'pending' || statusRaw == 'esperando usuario';
     final isActive = statusRaw == 'active' || statusRaw == 'en viaje';
-    
+
     final statusLabel = isPending
         ? AppDictionary.text(lang, 'waiting_user')
-        : (isActive ? AppDictionary.text(lang, 'on_trip') : AppDictionary.text(lang, 'available'));
-        
+        : (isActive
+              ? AppDictionary.text(lang, 'on_trip')
+              : AppDictionary.text(lang, 'available'));
+
     final statusFg = isPending
         ? const Color(0xFFE65100)
         : (isActive ? const Color(0xFF1B5E20) : const Color(0xFF6B42C7));
@@ -63,7 +103,9 @@ class RideCard extends StatelessWidget {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isPending ? const Color(0xFFFFE0B2) : Theme.of(context).colorScheme.outlineVariant,
+              color: isPending
+                  ? const Color(0xFFFFE0B2)
+                  : Theme.of(context).colorScheme.outlineVariant,
               width: isPending ? 2 : 1,
             ),
           ),
@@ -86,13 +128,27 @@ class RideCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      "${AppDictionary.text(lang, 'route')} #${ride['id'] ?? '--'}",
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    child: FutureBuilder<String>(
+                      future: destinationFuture,
+                      builder: (context, snapshot) {
+                        final dest = (snapshot.data ?? '').trim();
+                        final title = dest.isNotEmpty && dest != '--'
+                            ? dest
+                            : AppDictionary.text(lang, 'calculating_location');
+                        return Text(
+                          title,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        );
+                      },
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusBg,
                       borderRadius: BorderRadius.circular(8),
@@ -111,12 +167,18 @@ class RideCard extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 "${AppDictionary.text(lang, 'origin')}: ${(oLat ?? 0).toStringAsFixed(4)}, ${(oLng ?? 0).toStringAsFixed(4)}",
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 "${AppDictionary.text(lang, 'destination')}: ${(dLat ?? 0).toStringAsFixed(4)}, ${(dLng ?? 0).toStringAsFixed(4)}",
-                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -154,7 +216,10 @@ class RideCard extends StatelessWidget {
                             minimumSize: const Size(0, 32),
                             textStyle: const TextStyle(fontSize: 12),
                           ),
-                          icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
+                          icon: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 16,
+                          ),
                           label: Text(AppDictionary.text(lang, 'chat')),
                         ),
                       if (onRate != null) ...[

@@ -4,6 +4,7 @@ import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
 import '../../../services/auth_service.dart';
 import '../../auth_screen.dart';
+import '../../my_trips_screen.dart';
 import '../../theme_tab.dart';
 import '../widgets/profile_card.dart';
 
@@ -54,10 +55,21 @@ class ProfileTab extends StatelessWidget {
             subtitle: AppDictionary.text(lang, 'visual_settings_desc'),
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const Scaffold(
-                  body: ThemeTab(),
-                )),
+                MaterialPageRoute(
+                  builder: (_) => const Scaffold(body: ThemeTab()),
+                ),
               );
+            },
+          ),
+          const SizedBox(height: 8),
+          _OptionTile(
+            icon: Icons.directions_car_filled_rounded,
+            title: AppDictionary.text(lang, 'my_trips'),
+            subtitle: AppDictionary.text(lang, 'my_trips_subtitle'),
+            onTap: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
             },
           ),
           const SizedBox(height: 8),
@@ -108,7 +120,9 @@ class _OptionTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: Row(
             children: [
@@ -131,7 +145,10 @@ class _OptionTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -144,7 +161,10 @@ class _OptionTile extends StatelessWidget {
                   ],
                 ),
               ),
-              if (trailing != null) trailing! else const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              if (trailing != null)
+                trailing!
+              else
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
             ],
           ),
         ),

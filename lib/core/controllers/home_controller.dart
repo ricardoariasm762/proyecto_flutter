@@ -16,7 +16,7 @@ class HomeController extends ChangeNotifier {
 
   LatLng? currentPosition;
   LatLng? destination;
-  
+
   String originTitleKey = 'getting_location';
   String destinationTitleKey = 'select_destination';
   String? customOriginTitle;
@@ -30,8 +30,10 @@ class HomeController extends ChangeNotifier {
 
   HomeController(this._locationService, this._rideService);
 
-  String getOriginTitle(String lang) => customOriginTitle ?? AppDictionary.text(lang, originTitleKey);
-  String getDestinationTitle(String lang) => customDestinationTitle ?? AppDictionary.text(lang, destinationTitleKey);
+  String getOriginTitle(String lang) =>
+      customOriginTitle ?? AppDictionary.text(lang, originTitleKey);
+  String getDestinationTitle(String lang) =>
+      customDestinationTitle ?? AppDictionary.text(lang, destinationTitleKey);
 
   void setAvailableSeats(int seats) {
     availableSeats = seats.clamp(1, 5);
@@ -48,7 +50,9 @@ class HomeController extends ChangeNotifier {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppDictionary.text(currentLanguage, 'location_permission_error')),
+            content: Text(
+              AppDictionary.text(currentLanguage, 'location_permission_error'),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -78,15 +82,22 @@ class HomeController extends ChangeNotifier {
   }
 
   Future<void> _getAddress(LatLng point, bool isOrigin) async {
-    final url = Uri.parse("https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}");
+    final url = Uri.parse(
+      "https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}",
+    );
     try {
-      final response = await http.get(url, headers: {'User-Agent': 'ridematch_community_app'});
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'ridematch_community_app'},
+      );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final displayName = data['display_name'] ?? "";
         final parts = displayName.split(',');
-        final concise = parts.length > 2 ? "${parts[0]}, ${parts[1]}" : displayName;
-        
+        final concise = parts.length > 2
+            ? "${parts[0]}, ${parts[1]}"
+            : displayName;
+
         if (isOrigin) {
           customOriginTitle = concise;
         } else {
@@ -99,7 +110,10 @@ class HomeController extends ChangeNotifier {
 
   Future<void> fetchRoute(LatLng start, LatLng end) async {
     final options = RouteRequest(
-      coordinates: [(start.longitude, start.latitude), (end.longitude, end.latitude)],
+      coordinates: [
+        (start.longitude, start.latitude),
+        (end.longitude, end.latitude),
+      ],
       geometries: OsrmGeometries.geojson,
     );
     try {
@@ -114,7 +128,7 @@ class HomeController extends ChangeNotifier {
           routeDistance = distance;
           routeDuration = duration;
           notifyListeners();
-          
+
           if (routePoints.isNotEmpty) {
             mapController.fitCamera(
               CameraFit.bounds(
@@ -130,16 +144,31 @@ class HomeController extends ChangeNotifier {
 
   Future<void> createRide(BuildContext context, String currentLanguage) async {
     if (destination == null || currentPosition == null) return;
-    await _rideService.createRide(
-      originLat: currentPosition!.latitude,
-      originLng: currentPosition!.longitude,
-      destLat: destination!.latitude,
-      destLng: destination!.longitude,
-      availableSeats: availableSeats,
-    );
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppDictionary.text(currentLanguage, 'ride_created'))),
-    );
+    try {
+      await _rideService.createRide(
+        originLat: currentPosition!.latitude,
+        originLng: currentPosition!.longitude,
+        destLat: destination!.latitude,
+        destLng: destination!.longitude,
+        availableSeats: availableSeats,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppDictionary.text(currentLanguage, 'ride_created')),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      final isAuth = e.toString().contains('auth-required');
+      final raw = e.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
+      final short = raw.length > 140 ? raw.substring(0, 140) : raw;
+      final msg = isAuth
+          ? AppDictionary.text(currentLanguage, 'auth_required')
+          : "${AppDictionary.text(currentLanguage, 'ride_create_failed')}: $short";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
+      );
+    }
   }
 }

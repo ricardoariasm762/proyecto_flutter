@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_login/flutter_login.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -44,13 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
       onLogin: _authUser,
       onSignup: _signupUser,
       onRecoverPassword: _recoverPassword,
-      onSubmitAnimationCompleted: () {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const HomeScreen(),
-          ),
-        );
-      },
+      onSubmitAnimationCompleted: () {},
       theme: LoginTheme(
         primaryColor: colorScheme.primary,
         accentColor: colorScheme.secondary,

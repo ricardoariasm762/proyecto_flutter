@@ -26,7 +26,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.rideId == null ? 'Chat' : 'Chat • Ruta #${widget.rideId}';
+    final title = 'Chat';
 
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(

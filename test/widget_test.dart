@@ -1,30 +1,47 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:ride_match/main.dart';
+import 'package:ride_match/core/localization/language_controller.dart';
+import 'package:ride_match/screens/home/widgets/ride_card.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('RideCard shows destination title (not DB name)', (
+    WidgetTester tester,
+  ) async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    final ride = <String, dynamic>{
+      'id': 123,
+      'origin_lat': 4.7110,
+      'origin_lng': -74.0721,
+      'dest_lat': null,
+      'dest_lng': null,
+      'status': 'waiting',
+    };
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => LanguageController()),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: RideCard(
+              ride: ride,
+              members: 1,
+              seatsLeft: 4,
+              totalFare: 10000,
+              splitFare: 10000,
+            ),
+          ),
+        ),
+      ),
+    );
+
     await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.textContaining('Ruta #'), findsNothing);
   });
 }
