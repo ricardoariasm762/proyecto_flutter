@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flex_color_scheme/flex_color_scheme.dart';
 import '../theme/theme_controller.dart';
+import 'package:provider/provider.dart';
+import '../core/localization/language_controller.dart';
+import '../core/localization/app_dictionary.dart';
 
 class ThemeTab extends StatelessWidget {
   const ThemeTab({super.key});
@@ -11,19 +14,20 @@ class ThemeTab extends StatelessWidget {
       animation: ThemeController.instance,
       builder: (context, _) {
         final ctrl = ThemeController.instance;
+        final lang = context.watch<LanguageController>().currentLanguage;
 
         return SafeArea(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             children: [
-              const Text(
-                'Configuración Visual',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+              Text(
+                AppDictionary.text(lang, 'visual_settings'),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Personaliza los colores y el estilo de la aplicación utilizando FlexColorScheme.',
-                style: TextStyle(color: Colors.black54),
+              Text(
+                AppDictionary.text(lang, 'visual_settings_desc'),
+                style: const TextStyle(color: Colors.black54),
               ),
               const SizedBox(height: 24),
               // Theme Mode
@@ -41,8 +45,8 @@ class ThemeTab extends StatelessWidget {
                 ),
               ),
               SwitchListTile(
-                title: const Text('Modo Oscuro', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Alternar fondo oscuro/claro'),
+                title: Text(AppDictionary.text(lang, 'dark_mode'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(AppDictionary.text(lang, 'dark_mode_desc')),
                 value: ctrl.themeMode == ThemeMode.dark,
                 onChanged: (val) {
                   ctrl.setThemeMode(val ? ThemeMode.dark : ThemeMode.light);
@@ -51,8 +55,8 @@ class ThemeTab extends StatelessWidget {
               const Divider(),
               // Material 3
               SwitchListTile(
-                title: const Text('Usar Material 3', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Habilitar diseño y bordes redondeados modernos'),
+                title: Text(AppDictionary.text(lang, 'use_material3'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(AppDictionary.text(lang, 'use_material3_desc')),
                 value: ctrl.useMaterial3,
                 onChanged: (val) {
                   ctrl.setUseMaterial3(val);
@@ -60,8 +64,8 @@ class ThemeTab extends StatelessWidget {
               ),
               const Divider(),
               const SizedBox(height: 16),
-              const Text(
-                'Tema de colores',
+              Text(
+                AppDictionary.text(lang, 'color_theme'),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 16),
@@ -69,7 +73,7 @@ class ThemeTab extends StatelessWidget {
               DropdownButtonFormField<FlexScheme>(
                 initialValue: ctrl.usedScheme,
                 decoration: InputDecoration(
-                  labelText: 'Selecciona una paleta de FlexScheme',
+                  labelText: AppDictionary.text(lang, 'select_flex_scheme'),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 items: FlexScheme.values.map((scheme) {
@@ -85,8 +89,8 @@ class ThemeTab extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Ejemplos de Componentes',
+              Text(
+                AppDictionary.text(lang, 'component_examples'),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 16),
