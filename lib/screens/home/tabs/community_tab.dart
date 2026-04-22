@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
 import '../../../services/ride_service.dart';
+import '../../../services/notification_service.dart';
 import '../../chat_screen.dart';
 import '../widgets/empty_card.dart';
 import '../widgets/ride_card.dart';
@@ -109,6 +110,13 @@ class _CommunityTabState extends State<CommunityTab> {
                         final rideId = (ride['id'] ?? '').toString();
                         if (rideId.isEmpty) return;
                         await _rideService.requestJoinRide(rideId: rideId);
+                        
+                        await NotificationService().showNotification(
+                          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+                          title: AppDictionary.text(lang, 'request_sent') ?? 'Solicitud enviada',
+                          body: 'Has solicitado unirte al viaje exitosamente.',
+                        );
+
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text(AppDictionary.text(lang, 'request_sent'))),

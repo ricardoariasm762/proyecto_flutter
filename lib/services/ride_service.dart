@@ -91,4 +91,32 @@ class RideService {
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(data);
   }
+
+  void listenForRideRequests(void Function(Map<String, dynamic> requestData) onNewRequest) {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+
+    _client.channel('public:ride_requests').onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'ride_requests',
+      callback: (payload) async {
+        final newRecord = payload.newRecord;
+        if (newRecord != null) {
+          final rideId = (newRecord['ride_id'] ?? '').toString();
+          
+          // Verify if the ride belongs to the current user
+          final rideData = await _client
+              .from('rides')
+              .select('user_id')
+              .eq('id', rideId)
+              .maybeSingle();
+
+          if (rideData != null && rideData['user_id'] == user.id) {
+            onNewRequest(newRecord);
+          }
+        }
+      },
+    ).subscribe();
+  }
 }

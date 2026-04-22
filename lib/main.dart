@@ -11,6 +11,7 @@ import 'core/localization/language_controller.dart';
 import 'core/controllers/home_controller.dart';
 import 'services/location_service.dart';
 import 'services/ride_service.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,11 +22,14 @@ void main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vd2hrZ2VrZm5ka2JqZGRjaGl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NjQ3MjUsImV4cCI6MjA4OTQ0MDcyNX0.mBn0tIQocTy2pFgXrwgx2PBmctEOY8mLvWpxfQp_iNs',
   );
 
+  await NotificationService().initialize();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageController()),
-        ChangeNotifierProvider(create: (_) => HomeController(LocationService(), RideService())),
+        Provider<RideService>(create: (_) => RideService()),
+        ChangeNotifierProvider(create: (context) => HomeController(LocationService(), context.read<RideService>())),
       ],
       child: const MyApp(),
     ),

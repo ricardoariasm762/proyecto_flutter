@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:osrm/osrm.dart';
 import '../../services/location_service.dart';
 import '../../services/ride_service.dart';
+import '../../services/notification_service.dart';
 import '../localization/app_dictionary.dart';
 
 class HomeController extends ChangeNotifier {
@@ -34,6 +35,13 @@ class HomeController extends ChangeNotifier {
       customOriginTitle ?? AppDictionary.text(lang, originTitleKey);
   String getDestinationTitle(String lang) =>
       customDestinationTitle ?? AppDictionary.text(lang, destinationTitleKey);
+
+  int currentTabIndex = 0;
+
+  void setTabIndex(int index) {
+    currentTabIndex = index;
+    notifyListeners();
+  }
 
   void setAvailableSeats(int seats) {
     availableSeats = seats.clamp(1, 5);
@@ -152,6 +160,17 @@ class HomeController extends ChangeNotifier {
         destLng: destination!.longitude,
         availableSeats: availableSeats,
       );
+
+      // Trigger local notification
+      await NotificationService().showNotification(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: AppDictionary.text(currentLanguage, 'ride_created'),
+        body: AppDictionary.text(currentLanguage, 'ride_created_body') ?? 'Your ride is now visible in the community tab.',
+      );
+
+      // Switch to Community Tab
+      setTabIndex(1);
+
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
