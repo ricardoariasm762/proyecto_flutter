@@ -8,6 +8,7 @@ class RideService {
     required double originLng,
     required double destLat,
     required double destLng,
+    required int availableSeats,
   }) async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -18,6 +19,7 @@ class RideService {
       'origin_lng': originLng,
       'dest_lat': destLat,
       'dest_lng': destLng,
+      'available_seats': availableSeats,
       'status': 'waiting',
     });
   }

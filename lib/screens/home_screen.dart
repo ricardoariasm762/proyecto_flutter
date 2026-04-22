@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng? destination;
   
   String originTitle = "Obteniendo ubicación...";
+  int _availableSeats = 1;
   String destinationTitle = "Seleccione destino";
   num? routeDistance;
   num? routeDuration;
@@ -127,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
       originLng: currentPosition!.longitude,
       destLat: destination!.latitude,
       destLng: destination!.longitude,
+      availableSeats: _availableSeats,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -246,34 +248,61 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 26),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 26),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Publicar viaje",
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "Modelo comunitario: 5 cupos maximos y division de pago.",
-                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: destination == null ? null : createRide,
-                    icon: const Icon(Icons.add_road_rounded),
-                    label: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Text("Crear viaje comunitario"),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Lugares disponibles",
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Máximo 3 participantes",
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
+                    ),
+                  ],
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {
+                          if (_availableSeats > 1) {
+                            setState(() => _availableSeats--);
+                          }
+                        },
+                        icon: const Icon(Icons.remove),
+                        color: _availableSeats > 1 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          "$_availableSeats",
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          if (_availableSeats < 3) {
+                            setState(() => _availableSeats++);
+                          }
+                        },
+                        icon: const Icon(Icons.add),
+                        color: _availableSeats < 3 ? Theme.of(context).colorScheme.primary : Colors.grey,
+                      ),
+                    ],
                   ),
                 ),
               ],
