@@ -64,26 +64,27 @@ class RideCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageController>().currentLanguage;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final oLat = (ride['origin_lat'] as num?)?.toDouble();
     final oLng = (ride['origin_lng'] as num?)?.toDouble();
     final dLat = (ride['dest_lat'] as num?)?.toDouble();
     final dLng = (ride['dest_lng'] as num?)?.toDouble();
-    final status = (ride['status'] ?? 'waiting').toString();
+    final status = (ride['status'] ?? 'gathering').toString();
     final statusRaw = status.toLowerCase();
     final destinationFuture = (dLat == null || dLng == null)
         ? Future.value('--')
         : _resolveDestinationTitle(dLat, dLng);
 
     final isPending =
-        statusRaw == 'pending' || statusRaw == 'esperando usuario';
-    final isActive = statusRaw == 'active' || statusRaw == 'en viaje';
+        statusRaw == 'gathering' || statusRaw == 'pending';
+    final isSearching = statusRaw == 'searching_driver';
+    final isActive = statusRaw == 'driver_assigned' || statusRaw == 'active';
 
-    final statusLabel = isPending
-        ? AppDictionary.text(lang, 'waiting_user')
-        : (isActive
-              ? AppDictionary.text(lang, 'on_trip')
-              : AppDictionary.text(lang, 'available'));
+    String statusLabel = AppDictionary.text(lang, 'available');
+    if (isPending) statusLabel = "Reuniendo";
+    if (isSearching) statusLabel = "Buscando Auto";
+    if (isActive) statusLabel = "Asignado";
 
     final statusFg = isPending
         ? const Color(0xFFE65100)
@@ -96,17 +97,22 @@ class RideCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onOpenDetails,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(18),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
             border: Border.all(
-              color: isPending
-                  ? const Color(0xFFFFE0B2)
-                  : Theme.of(context).colorScheme.outlineVariant,
-              width: isPending ? 2 : 1,
+              color: isPending ? Colors.orange.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.1),
+              width: 1,
             ),
           ),
           child: Column(
@@ -114,151 +120,123 @@ class RideCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: isPending
-                        ? const Color(0xFFFFF3E0)
-                        : Theme.of(context).colorScheme.primaryContainer,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Icon(
-                      isPending ? Icons.hourglass_top_rounded : Icons.route,
-                      color: isPending
-                          ? const Color(0xFFE65100)
-                          : Theme.of(context).colorScheme.onPrimaryContainer,
+                      Icons.group_rounded,
+                      color: colorScheme.primary,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
-                    child: FutureBuilder<String>(
-                      future: destinationFuture,
-                      builder: (context, snapshot) {
-                        final dest = (snapshot.data ?? '').trim();
-                        final title = dest.isNotEmpty && dest != '--'
-                            ? dest
-                            : AppDictionary.text(lang, 'calculating_location');
-                        return Text(
-                          title,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        );
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FutureBuilder<String>(
+                          future: destinationFuture,
+                          builder: (context, snapshot) {
+                            final dest = (snapshot.data ?? '').trim();
+                            return Text(
+                              dest.isNotEmpty && dest != '--' ? dest : 'Calculando...',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
+                        ),
+                        Text(
+                          'Destino del viaje',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: statusBg,
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      statusLabel,
+                      statusLabel.toUpperCase(),
                       style: TextStyle(
                         color: statusFg,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Text(
-                "${AppDictionary.text(lang, 'origin')}: ${(oLat ?? 0).toStringAsFixed(4)}, ${(oLng ?? 0).toStringAsFixed(4)}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "${AppDictionary.text(lang, 'destination')}: ${(dLat ?? 0).toStringAsFixed(4)}, ${(dLng ?? 0).toStringAsFixed(4)}",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  _buildInfoChip(Icons.people_outline, "$members/5"),
+                  const SizedBox(width: 8),
+                  _buildInfoChip(Icons.event_seat_outlined, "$seatsLeft asientos"),
+                  const Spacer(),
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "$members/5 ${AppDictionary.text(lang, 'people')} • ${AppDictionary.text(lang, 'seats')}: $seatsLeft",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        "\$${splitFare.toStringAsFixed(0)}",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        "${AppDictionary.text(lang, 'total')}: \$${totalFare.toStringAsFixed(0)} • ${AppDictionary.text(lang, 'split')}: \$${splitFare.toStringAsFixed(0)}",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      const Text(
+                        "por persona",
+                        style: TextStyle(fontSize: 10, color: Colors.grey),
                       ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      if (onOpenChat != null)
-                        OutlinedButton.icon(
-                          onPressed: onOpenChat,
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            minimumSize: const Size(0, 32),
-                            textStyle: const TextStyle(fontSize: 12),
-                          ),
-                          icon: const Icon(
-                            Icons.chat_bubble_outline_rounded,
-                            size: 16,
-                          ),
-                          label: Text(AppDictionary.text(lang, 'chat')),
-                        ),
-                      if (onRate != null) ...[
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          onPressed: onRate,
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.amber.shade700,
-                            side: BorderSide(color: Colors.amber.shade700),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            minimumSize: const Size(0, 32),
-                            textStyle: const TextStyle(fontSize: 12),
-                          ),
-                          icon: const Icon(Icons.star_rounded, size: 16),
-                          label: Text(AppDictionary.text(lang, 'rate')),
-                        ),
-                      ],
-                      if (!isPending && onJoin != null) ...[
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: onJoin,
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 0,
-                            ),
-                            minimumSize: const Size(0, 32),
-                            textStyle: const TextStyle(fontSize: 12),
-                          ),
-                          child: Text(AppDictionary.text(lang, 'join')),
-                        ),
-                      ],
                     ],
                   ),
                 ],
               ),
+              if (onJoin != null && isPending) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: onJoin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Unirse al Grupo', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.grey[700]),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500),
+          ),
+        ],
       ),
     );
   }

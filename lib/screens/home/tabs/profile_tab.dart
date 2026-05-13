@@ -18,65 +18,63 @@ class ProfileTab extends StatelessWidget {
     final authService = AuthService();
     final user = authService.currentUser;
 
-    return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          "Perfil",
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
         children: [
-          ProfileCard(email: user?.email ?? AppDictionary.text(lang, 'user')),
-          const SizedBox(height: 12),
+          _buildUserHeader(user?.email ?? "Usuario"),
+          const SizedBox(height: 32),
+          const Text(
+            "Configuración",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
           _OptionTile(
             icon: Icons.language_rounded,
             title: AppDictionary.text(lang, 'language'),
-            subtitle: AppDictionary.text(lang, 'change_language'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  lang == 'en' ? 'EN' : 'ES',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Switch(
-                  value: lang == 'en',
-                  onChanged: (value) {
-                    langController.toggleLanguage();
-                  },
-                ),
-              ],
-            ),
+            subtitle: lang == 'en' ? 'English' : 'Español',
+            onTap: () => langController.toggleLanguage(),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _OptionTile(
-            icon: Icons.palette_rounded,
+            icon: Icons.palette_outlined,
             title: AppDictionary.text(lang, 'visual_settings'),
-            subtitle: AppDictionary.text(lang, 'visual_settings_desc'),
+            subtitle: "Personaliza el aspecto de la app",
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const Scaffold(body: ThemeTab()),
-                ),
+                MaterialPageRoute(builder: (_) => const Scaffold(body: ThemeTab())),
               );
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _OptionTile(
-            icon: Icons.directions_car_filled_rounded,
+            icon: Icons.directions_car_outlined,
             title: AppDictionary.text(lang, 'my_trips'),
-            subtitle: AppDictionary.text(lang, 'my_trips_subtitle'),
+            subtitle: "Historial de viajes realizados",
             onTap: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 32),
+          const Text(
+            "Cuenta",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
           _OptionTile(
             icon: Icons.logout_rounded,
-            title: AppDictionary.text(lang, 'logout'),
-            subtitle: AppDictionary.text(lang, 'logout_subtitle'),
+            title: "Cerrar Sesión",
+            subtitle: "Salir de tu cuenta actual",
+            isDestructive: true,
             onTap: () async {
               await authService.signOut();
               if (context.mounted) {
@@ -91,6 +89,48 @@ class ProfileTab extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildUserHeader(String email) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: const Icon(Icons.person, color: Colors.white, size: 32),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  email.split('@')[0].toUpperCase(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  email,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _OptionTile extends StatelessWidget {
@@ -98,15 +138,15 @@ class _OptionTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    this.trailing,
     this.onTap,
+    this.isDestructive = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
-  final Widget? trailing;
   final VoidCallback? onTap;
+  final bool isDestructive;
 
   @override
   Widget build(BuildContext context) {
@@ -116,25 +156,23 @@ class _OptionTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  shape: BoxShape.circle,
+                  color: isDestructive ? Colors.red.withValues(alpha: 0.1) : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: isDestructive ? Colors.red : Colors.black87,
                   size: 22,
                 ),
               ),
@@ -145,26 +183,20 @@ class _OptionTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: isDestructive ? Colors.red : Colors.black,
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
               ),
-              if (trailing != null)
-                trailing!
-              else
-                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+              Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
             ],
           ),
         ),

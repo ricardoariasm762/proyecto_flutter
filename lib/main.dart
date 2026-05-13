@@ -29,7 +29,10 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageController()),
         Provider<RideService>(create: (_) => RideService()),
-        ChangeNotifierProvider(create: (context) => HomeController(LocationService(), context.read<RideService>())),
+        ChangeNotifierProvider(
+          create: (context) =>
+              HomeController(LocationService(), context.read<RideService>()),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -45,12 +48,16 @@ class MyApp extends StatelessWidget {
       animation: ThemeController.instance,
       builder: (context, _) {
         final themeCtrl = ThemeController.instance;
-        
-        final String? fontFamily = GoogleFonts.notoSans().fontFamily;
+
+        final String? fontFamily = GoogleFonts.poppins().fontFamily;
         const TextTheme textTheme = TextTheme(
-          displayMedium: TextStyle(fontSize: 41),
-          displaySmall: TextStyle(fontSize: 36),
-          labelSmall: TextStyle(fontSize: 11, letterSpacing: 0.5),
+          displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+          displayMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+          displaySmall: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          headlineMedium: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          bodyLarge: TextStyle(fontSize: 16),
+          bodyMedium: TextStyle(fontSize: 14),
         );
 
         return MaterialApp(
@@ -59,12 +66,12 @@ class MyApp extends StatelessWidget {
           themeMode: themeCtrl.themeMode,
           theme: FlexThemeData.light(
             scheme: themeCtrl.usedScheme,
-            useMaterial3: themeCtrl.useMaterial3,
-            surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
-            blendLevel: 8,
-            appBarStyle: FlexAppBarStyle.primary,
-            appBarOpacity: 0.94,
-            appBarElevation: 0.5,
+            useMaterial3: true,
+            surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+            blendLevel: 7,
+            appBarStyle: FlexAppBarStyle.background,
+            appBarOpacity: 1.0,
+            appBarElevation: 0,
             transparentStatusBar: true,
             tabBarStyle: FlexTabBarStyle.forAppBar,
             fontFamily: fontFamily,
@@ -72,14 +79,21 @@ class MyApp extends StatelessWidget {
             primaryTextTheme: textTheme,
             subThemesData: const FlexSubThemesData(
               interactionEffects: true,
-              defaultRadius: null,
+              defaultRadius: 12.0,
               bottomSheetRadius: 24,
               useMaterial3Typography: true,
               inputDecoratorBorderType: FlexInputBorderType.outline,
               inputDecoratorIsFilled: true,
               inputDecoratorUnfocusedHasBorder: false,
+              inputDecoratorFocusedHasBorder: true,
+              inputDecoratorFillColor: Color(0xFFF3F3F3),
+              inputDecoratorBorderWidth: 1.0,
               thickBorderWidth: 1.5,
               thinBorderWidth: 1,
+              elevatedButtonSchemeColor: SchemeColor.onPrimary,
+              elevatedButtonSecondarySchemeColor: SchemeColor.primary,
+              cardRadius: 16.0,
+              cardElevation: 0,
             ),
             visualDensity: FlexColorScheme.comfortablePlatformDensity,
           ),
@@ -112,7 +126,9 @@ class MyApp extends StatelessWidget {
           home: StreamBuilder<AuthState>(
             stream: Supabase.instance.client.auth.onAuthStateChange,
             builder: (context, snapshot) {
-              final session = snapshot.data?.session ?? Supabase.instance.client.auth.currentSession;
+              final session =
+                  snapshot.data?.session ??
+                  Supabase.instance.client.auth.currentSession;
               return session != null ? const HomeScreen() : const AuthScreen();
             },
           ),

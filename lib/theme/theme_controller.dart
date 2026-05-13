@@ -12,7 +12,7 @@ class ThemeController extends ChangeNotifier {
   bool _useMaterial3 = true;
   bool get useMaterial3 => _useMaterial3;
 
-  FlexScheme _usedScheme = FlexScheme.flutterDash;
+  FlexScheme _usedScheme = FlexScheme.greyLaw;
   FlexScheme get usedScheme => _usedScheme;
 
   void setThemeMode(ThemeMode mode) {
