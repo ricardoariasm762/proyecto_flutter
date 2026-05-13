@@ -6,117 +6,220 @@ class RideService {
 
   final SupabaseClient _client;
 
-  Future<void> createRide({
+  // ==========================================
+  // FASE 1: PASAJEROS (Grupos y Carpooling)
+  // ==========================================
+
+  Future<void> createGroup({
     required double originLat,
     required double originLng,
     required double destLat,
     required double destLng,
-    required int availableSeats,
+    int availableSeats = 1,
   }) async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
-    if (user == null) {
-      throw Exception('auth-required');
-    }
+    if (user == null) throw Exception('auth-required');
 
-    final payload = <String, dynamic>{
-      'user_id': user.id,
+    await _client.from('groups').insert({
+      'creator_id': user.id,
       'origin_lat': originLat,
       'origin_lng': originLng,
       'dest_lat': destLat,
       'dest_lng': destLng,
+      'status': 'gathering',
       'available_seats': availableSeats,
-      'status': 'waiting',
-    };
-
-    try {
-      await _client.from('rides').insert(payload);
-    } catch (e) {
-      final msg = e.toString();
-      final undefinedAvailableSeats = msg.contains('available_seats') &&
-          (msg.toLowerCase().contains('column') ||
-              msg.toLowerCase().contains('schema') ||
-              msg.toLowerCase().contains('does not exist'));
-      if (!undefinedAvailableSeats) rethrow;
-
-      final fallbackPayload = Map<String, dynamic>.from(payload)..remove('available_seats');
-      await _client.from('rides').insert(fallbackPayload);
-    }
-  }
-
-  Stream<List<Map<String, dynamic>>> getRidesStream() {
-    return getRidesStreamExcludingUser();
-  }
-
-  Stream<List<Map<String, dynamic>>> getRidesStreamExcludingUser({String? excludeUserId}) {
-    final query = _client
-        .from('rides')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false);
-    if (excludeUserId == null || excludeUserId.isEmpty) return query;
-    return query.map((rows) {
-      return rows.where((r) => (r['user_id'] ?? '').toString() != excludeUserId).toList(growable: false);
     });
   }
 
-  Future<void> requestJoinRide({required String rideId}) async {
+  Stream<List<Map<String, dynamic>>> getGatheringGroupsStreamExcludingUser({String? excludeUserId}) {
+    final query = _client
+        .from('groups')
+        .stream(primaryKey: ['id'])
+        .eq('status', 'gathering')
+        .order('created_at', ascending: false);
+
+    if (excludeUserId == null || excludeUserId.isEmpty) return query;
+    
+    return query.map((rows) {
+      return rows.where((r) => (r['creator_id'] ?? '').toString() != excludeUserId).toList(growable: false);
+    });
+  }
+
+  Future<bool> hasActiveGroupRequest() async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return false;
+
+    final data = await _client
+        .from('group_members')
+        .select()
+        .eq('user_id', user.id)
+        .filter('status', 'in', ['pending', 'accepted']);
+    
+    return data.isNotEmpty;
+  }
+
+  Future<void> requestJoinGroup({required String groupId}) async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;
 
-    await _client.from('ride_requests').insert({
-      'ride_id': rideId,
+    await _client.from('group_members').insert({
+      'group_id': groupId,
       'user_id': user.id,
       'status': 'pending',
     });
-
-    await _client.from('rides').update({'status': 'pending'}).eq('id', rideId);
   }
 
-  Future<List<Map<String, dynamic>>> getUserRides() async {
+  Future<Map<String, dynamic>?> getActiveGroup() async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
-    if (user == null) return [];
+    if (user == null) return null;
 
-    final data = await _client
-        .from('rides')
+    // Is Creator?
+    final creatorGroup = await _client.from('groups')
         .select()
+        .eq('creator_id', user.id)
+        .filter('status', 'in', ['gathering', 'searching_driver', 'driver_assigned'])
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+        
+    if (creatorGroup != null) return creatorGroup;
+
+    // Is Member?
+    final request = await _client.from('group_members')
+        .select('group_id')
         .eq('user_id', user.id)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(data);
+        .filter('status', 'in', ['pending', 'accepted'])
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (request != null) {
+      final group = await _client.from('groups').select().eq('id', request['group_id']).maybeSingle();
+      return group;
+    }
+    
+    return null;
   }
 
-  Future<List<Map<String, dynamic>>> getRideRequests({required String rideId}) async {
-    final data = await _client
-        .from('ride_requests')
-        .select()
-        .eq('ride_id', rideId)
-        .order('created_at', ascending: false);
-    return List<Map<String, dynamic>>.from(data);
-  }
-
-  void listenForRideRequests(void Function(Map<String, dynamic> requestData) onNewRequest) {
+  void listenForGroupRequests(void Function(Map<String, dynamic> requestData) onNewRequest) {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;
 
-    _client.channel('public:ride_requests').onPostgresChanges(
+    _client.channel('public:group_members').onPostgresChanges(
       event: PostgresChangeEvent.insert,
       schema: 'public',
-      table: 'ride_requests',
+      table: 'group_members',
       callback: (payload) async {
         final newRecord = payload.newRecord;
-        if (newRecord != null) {
-          final rideId = (newRecord['ride_id'] ?? '').toString();
+        if (newRecord != null && newRecord['status'] == 'pending') {
+          final groupId = (newRecord['group_id'] ?? '').toString();
           
-          // Verify if the ride belongs to the current user
-          final rideData = await _client
-              .from('rides')
-              .select('user_id')
-              .eq('id', rideId)
+          final groupData = await _client
+              .from('groups')
+              .select('creator_id')
+              .eq('id', groupId)
               .maybeSingle();
 
-          if (rideData != null && rideData['user_id'] == user.id) {
+          if (groupData != null && groupData['creator_id'] == user.id) {
             onNewRequest(newRecord);
           }
         }
       },
     ).subscribe();
+  }
+
+  Future<void> acceptGroupRequest({required String membershipId}) async {
+    await _client.from('group_members').update({'status': 'accepted'}).eq('id', membershipId);
+  }
+
+  Future<void> rejectGroupRequest({required String membershipId}) async {
+    await _client.from('group_members').update({'status': 'rejected'}).eq('id', membershipId);
+  }
+
+  // ==========================================
+  // FASE 2: CONDUCTOR (Estilo Uber)
+  // ==========================================
+
+  Future<void> searchDriverForGroup(String groupId) async {
+    // Creator clicks "Buscar Conductor"
+    await _client.from('groups').update({
+      'status': 'searching_driver',
+    }).eq('id', groupId);
+  }
+
+  Future<void> goOnline(double lat, double lng) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+
+    await _client.from('drivers_online').upsert({
+      'user_id': user.id,
+      'lat': lat,
+      'lng': lng,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<void> goOffline() async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+    await _client.from('drivers_online').delete().eq('user_id', user.id);
+  }
+
+  void listenForDriverPings(void Function(Map<String, dynamic> groupData) onPing) {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+
+    _client.channel('public:groups').onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: 'groups',
+      callback: (payload) {
+        final newRecord = payload.newRecord;
+        // Si un grupo acaba de pasar a estado 'searching_driver'
+        if (newRecord != null && newRecord['status'] == 'searching_driver') {
+          onPing(newRecord);
+        }
+      },
+    ).subscribe();
+  }
+
+  Future<void> acceptDriverPing(String groupId) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+
+    await _client.from('groups').update({
+      'status': 'driver_assigned',
+      'driver_id': user.id,
+    }).eq('id', groupId).eq('status', 'searching_driver');
+  }
+
+  Future<void> rejectDriverPing(String groupId) async {
+    // Si lo rechaza un conductor específico, podríamos hacer lógica, pero por ahora solo se ignora en el UI.
+  }
+
+  // ==========================================
+  // UTILIDADES
+  // ==========================================
+
+  Future<String> getUserName(String userId) async {
+    try {
+      final profile = await _client.from('profiles').select('name').eq('id', userId).maybeSingle();
+      if (profile != null && profile['name'] != null) {
+        return profile['name'].toString();
+      }
+    } catch (_) {}
+    return "Usuario";
+  }
+
+  Future<String> getCurrentUserRole() async {
+    try {
+      final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+      if (user == null) return 'passenger';
+      final profile = await _client.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (profile != null && profile['role'] != null) {
+        return profile['role'].toString();
+      }
+    } catch (_) {}
+    return 'passenger';
   }
 }

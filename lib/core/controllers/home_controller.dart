@@ -23,13 +23,30 @@ class HomeController extends ChangeNotifier {
   String? customOriginTitle;
   String? customDestinationTitle;
 
-  int availableSeats = 1;
+  String userRole = 'passenger';
+  bool isDriverOnline = false;
+
   num? routeDistance;
   num? routeDuration;
 
   List<LatLng> routePoints = [];
+  int availableSeats = 1;
 
-  HomeController(this._locationService, this._rideService);
+  HomeController(this._locationService, this._rideService) {
+    _initRole();
+  }
+
+  void setAvailableSeats(int seats) {
+    if (seats >= 1 && seats <= 4) {
+      availableSeats = seats;
+      notifyListeners();
+    }
+  }
+
+  Future<void> _initRole() async {
+    userRole = await _rideService.getCurrentUserRole();
+    notifyListeners();
+  }
 
   String getOriginTitle(String lang) =>
       customOriginTitle ?? AppDictionary.text(lang, originTitleKey);
@@ -43,9 +60,21 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setAvailableSeats(int seats) {
-    availableSeats = seats.clamp(1, 5);
+  Future<void> toggleDriverOnline(bool val, BuildContext context) async {
+    isDriverOnline = val;
     notifyListeners();
+    try {
+      if (val) {
+        if (currentPosition != null) {
+          await _rideService.goOnline(
+            currentPosition!.latitude,
+            currentPosition!.longitude,
+          );
+        }
+      } else {
+        await _rideService.goOffline();
+      }
+    } catch (_) {}
   }
 
   Future<void> getLocation(BuildContext context, String currentLanguage) async {
@@ -150,10 +179,10 @@ class HomeController extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> createRide(BuildContext context, String currentLanguage) async {
+  Future<void> createGroup(BuildContext context, String currentLanguage) async {
     if (destination == null || currentPosition == null) return;
     try {
-      await _rideService.createRide(
+      await _rideService.createGroup(
         originLat: currentPosition!.latitude,
         originLng: currentPosition!.longitude,
         destLat: destination!.latitude,
@@ -161,30 +190,24 @@ class HomeController extends ChangeNotifier {
         availableSeats: availableSeats,
       );
 
-      // Trigger local notification
       await NotificationService().showNotification(
         id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        title: AppDictionary.text(currentLanguage, 'ride_created'),
-        body: AppDictionary.text(currentLanguage, 'ride_created_body') ?? 'Your ride is now visible in the community tab.',
+        title: 'Grupo Creado',
+        body: 'El grupo ha sido publicado exitosamente en la comunidad.',
       );
 
-      // Switch to Community Tab
       setTabIndex(1);
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppDictionary.text(currentLanguage, 'ride_created')),
-        ),
+        const SnackBar(content: Text('Grupo creado correctamente.')),
       );
     } catch (e) {
       if (!context.mounted) return;
       final isAuth = e.toString().contains('auth-required');
-      final raw = e.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
-      final short = raw.length > 140 ? raw.substring(0, 140) : raw;
       final msg = isAuth
           ? AppDictionary.text(currentLanguage, 'auth_required')
-          : "${AppDictionary.text(currentLanguage, 'ride_create_failed')}: $short";
+          : "Error al crear grupo: $e";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
       );
