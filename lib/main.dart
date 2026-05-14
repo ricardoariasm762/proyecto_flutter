@@ -4,8 +4,7 @@ import 'package:flex_color_scheme/flex_color_scheme.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'theme/theme_controller.dart';
-import 'screens/auth_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/language_controller.dart';
 import 'core/controllers/home_controller.dart';
@@ -44,8 +43,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: ThemeController.instance,
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        ThemeController.instance,
+        context.read<LanguageController>(),
+      ]),
       builder: (context, _) {
         final themeCtrl = ThemeController.instance;
 
@@ -66,7 +68,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeCtrl.themeMode,
           theme: FlexThemeData.light(
             scheme: themeCtrl.usedScheme,
-            useMaterial3: true,
+            useMaterial3: themeCtrl.useMaterial3,
             surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
             blendLevel: 7,
             appBarStyle: FlexAppBarStyle.background,
@@ -100,11 +102,11 @@ class MyApp extends StatelessWidget {
           darkTheme: FlexThemeData.dark(
             scheme: themeCtrl.usedScheme,
             useMaterial3: themeCtrl.useMaterial3,
-            surfaceMode: FlexSurfaceMode.highBackgroundLowScaffold,
-            blendLevel: 8,
+            surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
+            blendLevel: 13,
             appBarStyle: FlexAppBarStyle.background,
-            appBarOpacity: 0.94,
-            appBarElevation: 0.5,
+            appBarOpacity: 1.0,
+            appBarElevation: 0,
             transparentStatusBar: true,
             tabBarStyle: FlexTabBarStyle.forAppBar,
             fontFamily: fontFamily,
@@ -112,26 +114,24 @@ class MyApp extends StatelessWidget {
             primaryTextTheme: textTheme,
             subThemesData: const FlexSubThemesData(
               interactionEffects: true,
-              defaultRadius: null,
+              defaultRadius: 12.0,
               bottomSheetRadius: 24,
               useMaterial3Typography: true,
               inputDecoratorBorderType: FlexInputBorderType.outline,
               inputDecoratorIsFilled: true,
               inputDecoratorUnfocusedHasBorder: false,
+              inputDecoratorFocusedHasBorder: true,
+              inputDecoratorBorderWidth: 1.0,
               thickBorderWidth: 1.5,
               thinBorderWidth: 1,
+              elevatedButtonSchemeColor: SchemeColor.onPrimary,
+              elevatedButtonSecondarySchemeColor: SchemeColor.primary,
+              cardRadius: 16.0,
+              cardElevation: 0,
             ),
             visualDensity: FlexColorScheme.comfortablePlatformDensity,
           ),
-          home: StreamBuilder<AuthState>(
-            stream: Supabase.instance.client.auth.onAuthStateChange,
-            builder: (context, snapshot) {
-              final session =
-                  snapshot.data?.session ??
-                  Supabase.instance.client.auth.currentSession;
-              return session != null ? const HomeScreen() : const AuthScreen();
-            },
-          ),
+          home: const SplashScreen(),
         );
       },
     );
