@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'package:osrm/osrm.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/location_service.dart';
 import '../../services/ride_service.dart';
 import '../../services/notification_service.dart';
@@ -32,8 +33,69 @@ class HomeController extends ChangeNotifier {
   List<LatLng> routePoints = [];
   int availableSeats = 1;
 
+  // Historial de búsquedas recientes
+  List<Map<String, dynamic>> recentSearches = [];
+
   HomeController(this._locationService, this._rideService) {
     _initRole();
+    _loadRecentSearches();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? searchesJson = prefs.getString('recent_searches');
+    if (searchesJson != null) {
+      recentSearches = List<Map<String, dynamic>>.from(
+        json.decode(searchesJson),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> _saveSearch(String address, LatLng point) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Evitar duplicados y mantener solo los últimos 4
+    recentSearches.removeWhere((item) => item['address'] == address);
+
+    recentSearches.insert(0, {
+      'address': address,
+      'lat': point.latitude,
+      'lng': point.longitude,
+    });
+
+    if (recentSearches.length > 4) {
+      recentSearches = recentSearches.sublist(0, 4);
+    }
+
+    await prefs.setString('recent_searches', json.encode(recentSearches));
+    notifyListeners();
+  }
+
+  Future<void> saveFavorite(String type, String address, LatLng point) async {
+    // Ya no se usa para home/work, pero guardamos en historial
+    await _saveSearch(address, point);
+  }
+
+  Future<LatLng?> geocodeAddress(String address) async {
+    final url = Uri.parse(
+      "https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(address)}&limit=1",
+    );
+    try {
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'ridematch_community_app'},
+      );
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final lat = double.parse(data[0]['lat']);
+          final lon = double.parse(data[0]['lon']);
+          return LatLng(lat, lon);
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   void setAvailableSeats(int seats) {
@@ -97,7 +159,7 @@ class HomeController extends ChangeNotifier {
     }
   }
 
-  void setDestination(LatLng point) {
+  void setDestination(LatLng point, {String? address}) {
     destination = point;
     customDestinationTitle = null;
     destinationTitleKey = 'calculating_location';
@@ -107,9 +169,22 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
 
     _getAddress(point, false);
+    if (address != null) {
+      _saveSearch(address, point);
+    }
     if (currentPosition != null) {
       fetchRoute(currentPosition!, destination!);
     }
+  }
+
+  void clearDestination() {
+    destination = null;
+    customDestinationTitle = null;
+    destinationTitleKey = 'select_destination';
+    routePoints = [];
+    routeDistance = null;
+    routeDuration = null;
+    notifyListeners();
   }
 
   void recenterMap() {
@@ -192,22 +267,24 @@ class HomeController extends ChangeNotifier {
 
       await NotificationService().showNotification(
         id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        title: 'Grupo Creado',
-        body: 'El grupo ha sido publicado exitosamente en la comunidad.',
+        title: AppDictionary.text(currentLanguage, 'ride_created'),
+        body: AppDictionary.text(currentLanguage, 'ride_created'),
       );
 
       setTabIndex(1);
 
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Grupo creado correctamente.')),
+        SnackBar(
+          content: Text(AppDictionary.text(currentLanguage, 'ride_created')),
+        ),
       );
     } catch (e) {
       if (!context.mounted) return;
       final isAuth = e.toString().contains('auth-required');
       final msg = isAuth
           ? AppDictionary.text(currentLanguage, 'auth_required')
-          : "Error al crear grupo: $e";
+          : "Error: $e";
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
       );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../core/controllers/home_controller.dart';
 import '../../../core/localization/language_controller.dart';
@@ -8,11 +9,79 @@ import '../../../core/localization/app_dictionary.dart';
 class TripsTab extends StatelessWidget {
   const TripsTab({super.key});
 
+  Future<void> _handleManualSearch(
+    BuildContext context,
+    HomeController controller,
+    String lang,
+  ) async {
+    final addressController = TextEditingController();
+    final String? address = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppDictionary.text(lang, 'select_destination')),
+        content: TextField(
+          controller: addressController,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: AppDictionary.text(lang, 'enter_address'),
+          ),
+          onSubmitted: (val) => Navigator.pop(context, val),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppDictionary.text(lang, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, addressController.text),
+            child: Text(AppDictionary.text(lang, 'save')),
+          ),
+        ],
+      ),
+    );
+
+    if (address != null && address.isNotEmpty) {
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      final point = await controller.geocodeAddress(address);
+
+      if (context.mounted) Navigator.pop(context); // Close loading
+
+      if (point != null) {
+        controller.setDestination(point, address: address);
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppDictionary.text(lang, 'location_not_found')),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _handleRecentSelection(
+    HomeController controller,
+    Map<String, dynamic> search,
+  ) async {
+    final point = LatLng(search['lat'], search['lng']);
+    controller.setDestination(point, address: search['address']);
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<HomeController>();
     final lang = context.watch<LanguageController>().currentLanguage;
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (controller.currentPosition == null) {
       return const Center(child: CircularProgressIndicator());
@@ -32,8 +101,9 @@ class TripsTab extends StatelessWidget {
             ),
             children: [
               TileLayer(
-                urlTemplate:
-                    "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+                urlTemplate: isDark
+                    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"
+                    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.ridematch.communityapp',
               ),
@@ -42,7 +112,7 @@ class TripsTab extends StatelessWidget {
                   polylines: [
                     Polyline(
                       points: controller.routePoints,
-                      color: Colors.black,
+                      color: colorScheme.primary,
                       strokeWidth: 5.0,
                     ),
                   ],
@@ -55,13 +125,13 @@ class TripsTab extends StatelessWidget {
                     height: 40,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? colorScheme.surface : Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black26,
+                            color: isDark ? Colors.black54 : Colors.black26,
                             blurRadius: 4,
-                            offset: Offset(0, 2),
+                            offset: const Offset(0, 2),
                           ),
                         ],
                       ),
@@ -84,7 +154,7 @@ class TripsTab extends StatelessWidget {
                       height: 40,
                       child: Icon(
                         Icons.location_on_rounded,
-                        color: Colors.redAccent,
+                        color: colorScheme.error,
                         size: 40,
                       ),
                     ),
@@ -98,7 +168,13 @@ class TripsTab extends StatelessWidget {
             top: 50,
             left: 20,
             right: 20,
-            child: _buildTopSearch(context, controller, lang),
+            child: _buildTopSearch(
+              context,
+              controller,
+              lang,
+              colorScheme,
+              isDark,
+            ),
           ),
 
           // Map Controls
@@ -113,13 +189,15 @@ class TripsTab extends StatelessWidget {
                     await controller.getLocation(context, lang);
                     controller.recenterMap();
                   },
+                  colorScheme: colorScheme,
+                  isDark: isDark,
                 ),
               ],
             ),
           ),
 
           // Bottom Sheet
-          _buildBottomSheet(context, controller, lang),
+          _buildBottomSheet(context, controller, lang, colorScheme, isDark),
         ],
       ),
     );
@@ -129,50 +207,59 @@ class TripsTab extends StatelessWidget {
     BuildContext context,
     HomeController controller,
     String lang,
+    ColorScheme colorScheme,
+    bool isDark,
   ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, color: Colors.grey[400]),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              controller.destination == null
-                  ? AppDictionary.text(lang, 'select_destination')
-                  : controller.getDestinationTitle(lang),
-              style: TextStyle(
-                color: controller.destination == null
-                    ? Colors.grey[500]
-                    : Colors.black,
-                fontWeight: controller.destination == null
-                    ? FontWeight.normal
-                    : FontWeight.w600,
-                fontSize: 16,
+    return GestureDetector(
+      onTap: () => _handleManualSearch(context, controller, lang),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? colorScheme.surface : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, color: colorScheme.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                controller.destination == null
+                    ? AppDictionary.text(lang, 'select_destination')
+                    : controller.getDestinationTitle(lang),
+                style: TextStyle(
+                  color: controller.destination == null
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                      : colorScheme.onSurface,
+                  fontWeight: controller.destination == null
+                      ? FontWeight.normal
+                      : FontWeight.w600,
+                  fontSize: 16,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          if (controller.destination != null)
-            IconButton(
-              icon: const Icon(Icons.close, size: 20),
-              onPressed: () {
-                // Clear destination logic
-              },
-            ),
-        ],
+            if (controller.destination != null)
+              IconButton(
+                icon: Icon(
+                  Icons.close,
+                  size: 20,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                onPressed: () {
+                  controller.clearDestination();
+                },
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -180,6 +267,8 @@ class TripsTab extends StatelessWidget {
   Widget _buildMapControl({
     required IconData icon,
     required VoidCallback onTap,
+    required ColorScheme colorScheme,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -187,17 +276,17 @@ class TripsTab extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? colorScheme.surface : Colors.white,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Icon(icon, color: Colors.black87),
+        child: Icon(icon, color: colorScheme.onSurface),
       ),
     );
   }
@@ -206,6 +295,8 @@ class TripsTab extends StatelessWidget {
     BuildContext context,
     HomeController controller,
     String lang,
+    ColorScheme colorScheme,
+    bool isDark,
   ) {
     if (controller.destination == null) {
       return Positioned(
@@ -214,30 +305,53 @@ class TripsTab extends StatelessWidget {
         bottom: 0,
         child: Container(
           padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? colorScheme.surface : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '¿A dónde vamos?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              GestureDetector(
+                onTap: () => _handleManualSearch(context, controller, lang),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      AppDictionary.text(lang, 'where_to'),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              _buildLocationShortcut(
-                icon: Icons.home_rounded,
-                title: 'Casa',
-                onTap: () {},
-              ),
-              const Divider(height: 1),
-              _buildLocationShortcut(
-                icon: Icons.work_rounded,
-                title: 'Trabajo',
-                onTap: () {},
-              ),
+              const SizedBox(height: 20),
+              if (controller.recentSearches.isNotEmpty)
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: controller.recentSearches.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final search = controller.recentSearches[index];
+                    return _buildLocationShortcut(
+                      icon: Icons.history_rounded,
+                      title: search['address'],
+                      onTap: () => _handleRecentSelection(controller, search),
+                      colorScheme: colorScheme,
+                      isDark: isDark,
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -250,11 +364,15 @@ class TripsTab extends StatelessWidget {
       bottom: 0,
       child: Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? colorScheme.surface : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
-            BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
           ],
         ),
         child: Column(
@@ -267,24 +385,29 @@ class TripsTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Viaje Compartido',
+                        AppDictionary.text(lang, 'shared_ride'),
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                       Text(
-                        'Viaja con otros y ahorra',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        AppDictionary.text(lang, 'travel_save'),
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Text(
                   '\$${(controller.routeDistance ?? 0 / 1000 * 1500).toStringAsFixed(0)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -299,7 +422,9 @@ class TripsTab extends StatelessWidget {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: isDark
+                          ? colorScheme.surfaceContainerHighest
+                          : const Color(0xFFF5F5F5),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -309,6 +434,8 @@ class TripsTab extends StatelessWidget {
                           onTap: () => controller.setAvailableSeats(
                             controller.availableSeats - 1,
                           ),
+                          colorScheme: colorScheme,
+                          isDark: isDark,
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -316,16 +443,17 @@ class TripsTab extends StatelessWidget {
                             children: [
                               Text(
                                 '${controller.availableSeats}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 18,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
-                              const Text(
-                                'asientos',
+                              Text(
+                                AppDictionary.text(lang, 'seats'),
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.grey,
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -336,6 +464,8 @@ class TripsTab extends StatelessWidget {
                           onTap: () => controller.setAvailableSeats(
                             controller.availableSeats + 1,
                           ),
+                          colorScheme: colorScheme,
+                          isDark: isDark,
                         ),
                       ],
                     ),
@@ -347,15 +477,19 @@ class TripsTab extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => controller.createGroup(context, lang),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDark
+                              ? colorScheme.primary
+                              : Colors.black,
+                          foregroundColor: isDark
+                              ? colorScheme.onPrimary
+                              : Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: const Text(
-                          'Confirmar',
-                          style: TextStyle(
+                        child: Text(
+                          AppDictionary.text(lang, 'confirm'),
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -376,13 +510,15 @@ class TripsTab extends StatelessWidget {
   Widget _buildSeatActionButton({
     required IconData icon,
     required VoidCallback onTap,
+    required ColorScheme colorScheme,
+    required bool isDark,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? colorScheme.surface : Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
@@ -391,7 +527,7 @@ class TripsTab extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: Colors.black87),
+        child: Icon(icon, size: 20, color: colorScheme.onSurface),
       ),
     );
   }
@@ -399,25 +535,90 @@ class TripsTab extends StatelessWidget {
   Widget _buildLocationShortcut({
     required IconData icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
+    required ColorScheme colorScheme,
+    required bool isDark,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey[600]),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+    return InkWell(
       onTap: onTap,
-      contentPadding: EdgeInsets.zero,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : const Color(0xFFF8F8F8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(
+              alpha: isDark ? 0.2 : 0.5,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: colorScheme.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null)
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildDriverControls(BuildContext context, HomeController controller) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "Modo Conductor",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              AppDictionary.text(
+                context.read<LanguageController>().currentLanguage,
+                'driver_mode',
+              ),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: colorScheme.onSurface,
+              ),
             ),
             Switch(
               value: controller.isDriverOnline,
@@ -429,67 +630,19 @@ class TripsTab extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           controller.isDriverOnline
-              ? "En línea: Esperando solicitudes"
-              : "Desconectado",
+              ? AppDictionary.text(
+                  context.read<LanguageController>().currentLanguage,
+                  'online',
+                )
+              : AppDictionary.text(
+                  context.read<LanguageController>().currentLanguage,
+                  'offline',
+                ),
           style: TextStyle(
-            color: controller.isDriverOnline ? Colors.green : Colors.grey,
+            color: controller.isDriverOnline
+                ? Colors.green
+                : colorScheme.onSurfaceVariant,
             fontSize: 13,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAddressRow(
-    BuildContext context,
-    IconData icon,
-    String label,
-    String address,
-    bool isOrigin,
-  ) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: isOrigin
-                ? Theme.of(context).colorScheme.primaryContainer
-                : Theme.of(context).colorScheme.secondaryContainer,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isOrigin
-                ? Theme.of(context).colorScheme.onPrimaryContainer
-                : Theme.of(context).colorScheme.onSecondaryContainer,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                address,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ),
         ),
       ],
