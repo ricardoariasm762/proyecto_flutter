@@ -89,9 +89,7 @@ class ThemeTab extends StatelessWidget {
       decoration: BoxDecoration(
         color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.1)),
       ),
       child: Column(
         children: [
@@ -151,7 +149,7 @@ class ThemeTab extends StatelessWidget {
           ? Icon(Icons.check_circle, color: colorScheme.primary)
           : Icon(
               Icons.circle_outlined,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
             ),
     );
   }
@@ -181,7 +179,7 @@ class ThemeTab extends StatelessWidget {
                 width: 100,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? colorScheme.primary.withValues(alpha: 0.1)
+                      ? colorScheme.primary.withOpacity(0.1)
                       : (isDark
                             ? colorScheme.surfaceContainerHighest
                             : Colors.white),
@@ -189,13 +187,13 @@ class ThemeTab extends StatelessWidget {
                   border: Border.all(
                     color: isSelected
                         ? colorScheme.primary
-                        : colorScheme.outlineVariant.withValues(alpha: 0.1),
+                        : colorScheme.outlineVariant.withOpacity(0.1),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: colorScheme.primary.withValues(alpha: 0.2),
+                            color: colorScheme.primary.withOpacity(0.2),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -270,7 +268,7 @@ class ThemeTab extends StatelessWidget {
         color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.1),
+          color: colorScheme.outlineVariant.withOpacity(0.1),
         ),
       ),
       child: Row(
@@ -320,7 +318,7 @@ class ThemeTab extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -347,7 +345,7 @@ class ThemeTab extends StatelessWidget {
                       width: 100,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withValues(alpha: 0.1),
+                        color: colorScheme.onSurface.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(5),
                       ),
                     ),
@@ -356,7 +354,7 @@ class ThemeTab extends StatelessWidget {
                       width: 60,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withValues(alpha: 0.05),
+                        color: colorScheme.onSurface.withOpacity(0.05),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

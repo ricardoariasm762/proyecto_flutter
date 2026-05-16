@@ -113,7 +113,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           body: pages[controller.currentTabIndex],
-          floatingActionButton: isMadrid ? FloatingActionButton(
+          floatingActionButton: isMadrid
+              ? FloatingActionButton(
                   onPressed: () {},
                   backgroundColor: const Color(0xFFFEBE10),
                   child: const Text('⚽', style: TextStyle(fontSize: 24)),
@@ -124,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isDark ? colorScheme.surface : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -134,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
               height: 65,
               backgroundColor: isDark ? colorScheme.surface : Colors.white,
               elevation: 0,
-              indicatorColor: colorScheme.primary.withValues(alpha: 0.1),
+              indicatorColor: colorScheme.primary.withOpacity(0.1),
               selectedIndex: controller.currentTabIndex,
               onDestinationSelected: (index) => controller.setTabIndex(index),
               destinations: [

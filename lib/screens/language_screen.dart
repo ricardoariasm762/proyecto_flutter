@@ -24,7 +24,10 @@ class LanguageScreen extends StatelessWidget {
         ),
         title: Text(
           AppDictionary.text(currentLang, 'language'),
-          style: TextStyle(color: colorScheme.onSurface, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: ListView(
@@ -71,12 +74,14 @@ class LanguageScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? colorScheme.primary.withValues(alpha: 0.1) 
+          color: isSelected
+              ? colorScheme.primary.withOpacity(0.1)
               : (isDark ? colorScheme.surfaceContainerHighest : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.1),
+            color: isSelected
+                ? colorScheme.primary
+                : colorScheme.outlineVariant.withOpacity(0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -86,14 +91,18 @@ class LanguageScreen extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: isSelected ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.05),
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurface.withOpacity(0.05),
                 shape: BoxShape.circle,
               ),
               child: Center(
                 child: Text(
                   code.toUpperCase(),
                   style: TextStyle(
-                    color: isSelected ? colorScheme.onPrimary : colorScheme.onSurface,
+                    color: isSelected
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -108,7 +117,9 @@ class LanguageScreen extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: colorScheme.onSurface,
                     ),
                   ),

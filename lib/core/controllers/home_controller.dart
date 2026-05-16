@@ -8,11 +8,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/location_service.dart';
 import '../../services/ride_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/groq_service.dart';
 import '../localization/app_dictionary.dart';
 
 class HomeController extends ChangeNotifier {
   final LocationService _locationService;
   final RideService _rideService;
+  final GroqService _aiService = GroqService();
   final MapController mapController = MapController();
   final Osrm _osrm = Osrm();
 
@@ -29,6 +31,12 @@ class HomeController extends ChangeNotifier {
 
   num? routeDistance;
   num? routeDuration;
+
+  // IA Pricing
+  double? aiSuggestedPrice;
+  String? aiSuggestedTime;
+  String? aiRecommendation;
+  bool isAiCalculatingPrice = false;
 
   List<LatLng> routePoints = [];
   int availableSeats = 1;
@@ -166,6 +174,9 @@ class HomeController extends ChangeNotifier {
     routePoints = [];
     routeDistance = null;
     routeDuration = null;
+    aiSuggestedPrice = null;
+    aiSuggestedTime = null;
+    aiRecommendation = null;
     notifyListeners();
 
     _getAddress(point, false);
@@ -174,6 +185,69 @@ class HomeController extends ChangeNotifier {
     }
     if (currentPosition != null) {
       fetchRoute(currentPosition!, destination!);
+    }
+  }
+
+  Future<void> _calculateAiPrice() async {
+    if (routeDistance == null) return;
+
+    isAiCalculatingPrice = true;
+    notifyListeners();
+
+    try {
+      final distanceKm = routeDistance! / 1000.0;
+      final passengers = availableSeats;
+      final now = DateTime.now();
+      final hour = now.hour;
+
+      final prompt =
+          """
+      Calcula el precio para un viaje en Pasto:
+      - Origen: ${customOriginTitle ?? 'Ubicación actual'}
+      - Destino: ${customDestinationTitle ?? 'Destino seleccionado'}
+      - Distancia: ${distanceKm.toStringAsFixed(1)} km
+      - Pasajeros: $passengers
+      - Hora: $hour:00
+      
+      Usa el formato exacto:
+      Precio estimado: \$XXXX COP
+      Tiempo aproximado: XX minutos
+      Recomendación: texto corto
+      """;
+
+      final response = await _aiService.preguntar(prompt);
+
+      // Parsear respuesta
+      final priceRegex = RegExp(r'Precio estimado: \$?([\d\.]+)');
+      final timeRegex = RegExp(r'Tiempo aproximado: (.*)');
+      final recRegex = RegExp(r'Recomendación: (.*)');
+
+      final priceMatch = priceRegex.firstMatch(response);
+      if (priceMatch != null) {
+        aiSuggestedPrice = double.tryParse(
+          priceMatch.group(1)!.replaceAll('.', ''),
+        );
+      }
+
+      final timeMatch = timeRegex.firstMatch(response);
+      if (timeMatch != null) {
+        aiSuggestedTime = timeMatch.group(1);
+      }
+
+      final recMatch = recRegex.firstMatch(response);
+      if (recMatch != null) {
+        aiRecommendation = recMatch.group(1);
+      }
+    } catch (_) {
+      // Fallback
+      final distanceKm = routeDistance! / 1000.0;
+      aiSuggestedPrice = 5000 + (distanceKm * 1000);
+      if (aiSuggestedPrice! < 5000) aiSuggestedPrice = 5000;
+      aiSuggestedTime = "${(distanceKm * 3).toStringAsFixed(0)} mins";
+      aiRecommendation = "Precio base estimado por distancia.";
+    } finally {
+      isAiCalculatingPrice = false;
+      notifyListeners();
     }
   }
 
@@ -240,6 +314,9 @@ class HomeController extends ChangeNotifier {
           routeDistance = distance;
           routeDuration = duration;
           notifyListeners();
+
+          // Calcular precio con IA
+          _calculateAiPrice();
 
           if (routePoints.isNotEmpty) {
             mapController.fitCamera(

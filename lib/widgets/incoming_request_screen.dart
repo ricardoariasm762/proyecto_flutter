@@ -68,7 +68,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Colors.white.withOpacity(0.05),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -107,7 +107,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
                     ? AppDictionary.text(lang, 'driver_ping_desc')
                     : AppDictionary.text(lang, 'passenger_ping_desc'),
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: Colors.white.withOpacity(0.6),
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -119,7 +119,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
                   Expanded(
                     child: _buildButton(
                       label: AppDictionary.text(lang, 'deny'),
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withOpacity(0.1),
                       textColor: Colors.white,
                       onPressed: widget.onReject,
                     ),

@@ -80,7 +80,12 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildExploreTab(BuildContext context, String lang, ColorScheme colorScheme, bool isDark) {
+  Widget _buildExploreTab(
+    BuildContext context,
+    String lang,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _communityGroups,
       builder: (context, snapshot) {
@@ -121,7 +126,10 @@ class _CommunityTabState extends State<CommunityTab> {
                     const SizedBox(height: 4),
                     Text(
                       AppDictionary.text(lang, 'nearby_subtitle'),
-                      style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -147,7 +155,9 @@ class _CommunityTabState extends State<CommunityTab> {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(AppDictionary.text(lang, 'already_in_group')),
+                        content: Text(
+                          AppDictionary.text(lang, 'already_in_group'),
+                        ),
                         backgroundColor: colorScheme.error,
                       ),
                     );
@@ -164,7 +174,9 @@ class _CommunityTabState extends State<CommunityTab> {
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(AppDictionary.text(lang, 'request_sent'))),
+                    SnackBar(
+                      content: Text(AppDictionary.text(lang, 'request_sent')),
+                    ),
                   );
                 },
               ),
@@ -175,7 +187,12 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildMyGroupTab(BuildContext context, String lang, ColorScheme colorScheme, bool isDark) {
+  Widget _buildMyGroupTab(
+    BuildContext context,
+    String lang,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _rideService.getActiveGroup(),
       builder: (context, snapshot) {
@@ -193,7 +210,9 @@ class _CommunityTabState extends State<CommunityTab> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: isDark ? colorScheme.surfaceContainerHighest : Colors.grey[100],
+                    color: isDark
+                        ? colorScheme.surfaceContainerHighest
+                        : Colors.grey[100],
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -205,7 +224,11 @@ class _CommunityTabState extends State<CommunityTab> {
                 const SizedBox(height: 24),
                 Text(
                   AppDictionary.text(lang, 'no_active_group'),
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -232,7 +255,11 @@ class _CommunityTabState extends State<CommunityTab> {
               const SizedBox(height: 32),
               Text(
                 AppDictionary.text(lang, 'trip_details'),
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 16),
               _buildDetailCard(activeGroup, lang, colorScheme, isDark),
@@ -277,7 +304,10 @@ class _CommunityTabState extends State<CommunityTab> {
                   icon: const Icon(Icons.chat_bubble_outline_rounded),
                   label: Text(
                     AppDictionary.text(lang, 'group_chat'),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colorScheme.onSurface,
@@ -295,7 +325,12 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildStatusHeader(String status, String lang, ColorScheme colorScheme, bool isDark) {
+  Widget _buildStatusHeader(
+    String status,
+    String lang,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     IconData icon = Icons.people_outline;
     String title = AppDictionary.text(lang, 'status_gathering');
     String desc = AppDictionary.text(lang, 'status_gathering_desc');
@@ -316,9 +351,9 @@ class _CommunityTabState extends State<CommunityTab> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -340,7 +375,7 @@ class _CommunityTabState extends State<CommunityTab> {
                 Text(
                   desc,
                   style: TextStyle(
-                    color: color.withValues(alpha: 0.8),
+                    color: color.withOpacity(0.8),
                     fontSize: 13,
                   ),
                 ),
@@ -352,7 +387,12 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildDetailCard(Map<String, dynamic> group, String lang, ColorScheme colorScheme, bool isDark) {
+  Widget _buildDetailCard(
+    Map<String, dynamic> group,
+    String lang,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -360,7 +400,7 @@ class _CommunityTabState extends State<CommunityTab> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -368,10 +408,26 @@ class _CommunityTabState extends State<CommunityTab> {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.calendar_today_outlined, AppDictionary.text(lang, 'date'), AppDictionary.text(lang, 'today'), colorScheme),
-          Divider(height: 32, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-          _buildInfoRow(Icons.person_outline, AppDictionary.text(lang, 'people'), "1/5", colorScheme),
-          Divider(height: 32, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          _buildInfoRow(
+            Icons.calendar_today_outlined,
+            AppDictionary.text(lang, 'date'),
+            AppDictionary.text(lang, 'today'),
+            colorScheme,
+          ),
+          Divider(
+            height: 32,
+            color: colorScheme.outlineVariant.withOpacity(0.5),
+          ),
+          _buildInfoRow(
+            Icons.person_outline,
+            AppDictionary.text(lang, 'people'),
+            "1/5",
+            colorScheme,
+          ),
+          Divider(
+            height: 32,
+            color: colorScheme.outlineVariant.withOpacity(0.5),
+          ),
           _buildInfoRow(
             Icons.attach_money_rounded,
             AppDictionary.text(lang, 'estimated_cost'),
@@ -383,14 +439,25 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, ColorScheme colorScheme) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value,
+    ColorScheme colorScheme,
+  ) {
     return Row(
       children: [
         Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 12),
         Text(label, style: TextStyle(color: colorScheme.onSurfaceVariant)),
         const Spacer(),
-        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: colorScheme.onSurface,
+          ),
+        ),
       ],
     );
   }

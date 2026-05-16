@@ -245,7 +245,7 @@ class TripsTab extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
               blurRadius: 20,
               offset: const Offset(0, 5),
             ),
@@ -262,7 +262,7 @@ class TripsTab extends StatelessWidget {
                     : controller.getDestinationTitle(lang),
                 style: TextStyle(
                   color: controller.destination == null
-                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                      ? colorScheme.onSurfaceVariant.withOpacity(0.6)
                       : colorScheme.onSurface,
                   fontWeight: controller.destination == null
                       ? FontWeight.normal
@@ -306,7 +306,7 @@ class TripsTab extends StatelessWidget {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -396,7 +396,7 @@ class TripsTab extends StatelessWidget {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.1),
+              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
               blurRadius: 10,
               spreadRadius: 2,
             ),
@@ -430,7 +430,9 @@ class TripsTab extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '\$${(controller.routeDistance ?? 0 / 1000 * 1500).toStringAsFixed(0)}',
+                  controller.aiSuggestedPrice != null
+                      ? '\$${controller.aiSuggestedPrice!.toStringAsFixed(0)}'
+                      : '\$${((controller.routeDistance ?? 0) / 1000 * 1500).toStringAsFixed(0)}',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -441,88 +443,142 @@ class TripsTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             if (controller.userRole == 'passenger')
-              Row(
+              Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? colorScheme.surfaceContainerHighest
-                          : const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildSeatActionButton(
-                          icon: Icons.remove,
-                          onTap: () => controller.setAvailableSeats(
-                            controller.availableSeats - 1,
-                          ),
-                          colorScheme: colorScheme,
-                          isDark: isDark,
+                  if (controller.aiSuggestedTime != null ||
+                      controller.aiRecommendation != null)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: colorScheme.primary.withOpacity(0.1),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Column(
-                            children: [
-                              Text(
-                                '${controller.availableSeats}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: colorScheme.onSurface,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (controller.aiSuggestedTime != null)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 16,
+                                  color: colorScheme.primary,
                                 ),
-                              ),
-                              Text(
-                                AppDictionary.text(lang, 'seats'),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: colorScheme.onSurfaceVariant,
+                                const SizedBox(width: 8),
+                                Text(
+                                  controller.aiSuggestedTime!,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.primary,
+                                  ),
                                 ),
+                              ],
+                            ),
+                          if (controller.aiRecommendation != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              controller.aiRecommendation!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: colorScheme.onSurfaceVariant,
                               ),
-                            ],
-                          ),
-                        ),
-                        _buildSeatActionButton(
-                          icon: Icons.add,
-                          onTap: () => controller.setAvailableSeats(
-                            controller.availableSeats + 1,
-                          ),
-                          colorScheme: colorScheme,
-                          isDark: isDark,
-                        ),
-                      ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () => controller.createGroup(context, lang),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark
-                              ? colorScheme.primary
-                              : Colors.black,
-                          foregroundColor: isDark
-                              ? colorScheme.onPrimary
-                              : Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        child: Text(
-                          AppDictionary.text(lang, 'confirm'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? colorScheme.surfaceContainerHighest
+                              : const Color(0xFFF5F5F5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildSeatActionButton(
+                              icon: Icons.remove,
+                              onTap: () => controller.setAvailableSeats(
+                                controller.availableSeats - 1,
+                              ),
+                              colorScheme: colorScheme,
+                              isDark: isDark,
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    '${controller.availableSeats}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  Text(
+                                    AppDictionary.text(lang, 'seats'),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _buildSeatActionButton(
+                              icon: Icons.add,
+                              onTap: () => controller.setAvailableSeats(
+                                controller.availableSeats + 1,
+                              ),
+                              colorScheme: colorScheme,
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: 56,
+                          child: ElevatedButton(
+                            onPressed: () =>
+                                controller.createGroup(context, lang),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark
+                                  ? colorScheme.primary
+                                  : Colors.black,
+                              foregroundColor: isDark
+                                  ? colorScheme.onPrimary
+                                  : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              AppDictionary.text(lang, 'confirm'),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               )
@@ -548,10 +604,7 @@ class TripsTab extends StatelessWidget {
           color: isDark ? colorScheme.surface : Colors.white,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-            ),
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
           ],
         ),
         child: Icon(icon, size: 20, color: colorScheme.onSurface),
@@ -578,9 +631,7 @@ class TripsTab extends StatelessWidget {
               : const Color(0xFFF8F8F8),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: colorScheme.outlineVariant.withValues(
-              alpha: isDark ? 0.2 : 0.5,
-            ),
+            color: colorScheme.outlineVariant.withOpacity(isDark ? 0.2 : 0.5),
           ),
         ),
         child: Row(
@@ -588,7 +639,7 @@ class TripsTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.1),
+                color: colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: colorScheme.primary, size: 24),
@@ -621,7 +672,7 @@ class TripsTab extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
             ),
           ],
         ),

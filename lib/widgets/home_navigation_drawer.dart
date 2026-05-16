@@ -51,15 +51,15 @@ class HomeNavigationDrawer extends StatelessWidget {
                   Text(
                     AppDictionary.text(lang, 'drawer_quick_links'),
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: scheme.onPrimary.withValues(alpha: 0.85),
-                        ),
+                      color: scheme.onPrimary.withOpacity(0.85),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     user?.email ?? AppDictionary.text(lang, 'user'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: scheme.onPrimary.withValues(alpha: 0.95),
-                        ),
+                      color: scheme.onPrimary.withOpacity(0.95),
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

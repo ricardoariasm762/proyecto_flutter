@@ -22,7 +22,9 @@ class ProfileCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundColor: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.1),
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.onPrimaryContainer.withOpacity(0.1),
             child: Icon(
               Icons.person_rounded,
               size: 32,
@@ -46,7 +48,9 @@ class ProfileCard extends StatelessWidget {
                 Text(
                   email,
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onPrimaryContainer.withOpacity(0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
