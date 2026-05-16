@@ -6,7 +6,8 @@ import '../../../services/auth_service.dart';
 import '../../auth_screen.dart';
 import '../../my_trips_screen.dart';
 import '../../theme_tab.dart';
-import '../widgets/profile_card.dart';
+import '../../language_screen.dart';
+import '../../../theme/theme_controller.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -15,43 +16,79 @@ class ProfileTab extends StatelessWidget {
   Widget build(BuildContext context) {
     final langController = context.watch<LanguageController>();
     final lang = langController.currentLanguage;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authService = AuthService();
     final user = authService.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? colorScheme.surface : Colors.white,
         elevation: 0,
-        title: const Text(
-          "Perfil",
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        title: Text(
+          AppDictionary.text(lang, 'profile'),
+          style: TextStyle(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _buildUserHeader(user?.email ?? "Usuario"),
+          _buildUserHeader(
+            user?.email ?? AppDictionary.text(lang, 'user'),
+            colorScheme,
+            isDark,
+          ),
           const SizedBox(height: 32),
-          const Text(
-            "Configuración",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            AppDictionary.text(lang, 'visual_settings'),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           _OptionTile(
             icon: Icons.language_rounded,
             title: AppDictionary.text(lang, 'language'),
             subtitle: lang == 'en' ? 'English' : 'Español',
-            onTap: () => langController.toggleLanguage(),
+            colorScheme: colorScheme,
+            isDark: isDark,
+            onTap: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const LanguageScreen()));
+            },
           ),
           const SizedBox(height: 12),
           _OptionTile(
             icon: Icons.palette_outlined,
             title: AppDictionary.text(lang, 'visual_settings'),
-            subtitle: "Personaliza el aspecto de la app",
+            subtitle: AppDictionary.text(lang, 'visual_settings_desc'),
+            colorScheme: colorScheme,
+            isDark: isDark,
             onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const Scaffold(body: ThemeTab())),
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const ThemeTab()));
+            },
+            onLongPress: () {
+              ThemeController.instance.toggleHalaMadridMode();
+              final isMadrid = ThemeController.instance.isHalaMadridMode;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isMadrid
+                        ? AppDictionary.text(lang, 'hala_madrid')
+                        : AppDictionary.text(lang, 'standard_mode'),
+                  ),
+                  backgroundColor: isMadrid ? const Color(0xFF00529F) : null,
+                  duration: const Duration(seconds: 2),
+                ),
               );
             },
           ),
@@ -59,22 +96,32 @@ class ProfileTab extends StatelessWidget {
           _OptionTile(
             icon: Icons.directions_car_outlined,
             title: AppDictionary.text(lang, 'my_trips'),
-            subtitle: "Historial de viajes realizados",
+            subtitle: AppDictionary.text(lang, 'my_trips_subtitle'),
+            colorScheme: colorScheme,
+            isDark: isDark,
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
             },
           ),
           const SizedBox(height: 32),
-          const Text(
-            "Cuenta",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Text(
+            AppDictionary.text(lang, 'logout'),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
           const SizedBox(height: 16),
           _OptionTile(
             icon: Icons.logout_rounded,
-            title: "Cerrar Sesión",
-            subtitle: "Salir de tu cuenta actual",
+            title: AppDictionary.text(lang, 'logout'),
+            subtitle: AppDictionary.text(lang, 'logout_subtitle'),
             isDestructive: true,
+            colorScheme: colorScheme,
+            isDark: isDark,
             onTap: () async {
               await authService.signOut();
               if (context.mounted) {
@@ -90,14 +137,18 @@ class ProfileTab extends StatelessWidget {
     );
   }
 
-  Widget _buildUserHeader(String email) {
+  Widget _buildUserHeader(String email, ColorScheme colorScheme, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -106,10 +157,10 @@ class ProfileTab extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: colorScheme.primary,
               borderRadius: BorderRadius.circular(15),
             ),
-            child: const Icon(Icons.person, color: Colors.white, size: 32),
+            child: Icon(Icons.person, color: colorScheme.onPrimary, size: 32),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -118,11 +169,18 @@ class ProfileTab extends StatelessWidget {
               children: [
                 Text(
                   email.split('@')[0].toUpperCase(),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 Text(
                   email,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
                 ),
               ],
             ),
@@ -138,14 +196,20 @@ class _OptionTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
+    required this.colorScheme,
+    required this.isDark,
     this.onTap,
+    this.onLongPress,
     this.isDestructive = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final ColorScheme colorScheme;
+  final bool isDark;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final bool isDestructive;
 
   @override
@@ -154,25 +218,32 @@ class _OptionTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.1),
+            ),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: isDestructive ? Colors.red.withValues(alpha: 0.1) : Colors.grey[100],
+                  color: isDestructive
+                      ? colorScheme.error.withValues(alpha: 0.1)
+                      : colorScheme.onSurface.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: isDestructive ? Colors.red : Colors.black87,
+                  color: isDestructive
+                      ? colorScheme.error
+                      : colorScheme.primary,
                   size: 22,
                 ),
               ),
@@ -186,17 +257,25 @@ class _OptionTile extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        color: isDestructive ? Colors.red : Colors.black,
+                        color: isDestructive
+                            ? colorScheme.error
+                            : colorScheme.onSurface,
                       ),
                     ),
                     Text(
                       subtitle,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: Colors.grey[400]),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
             ],
           ),
         ),

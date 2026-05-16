@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../core/localization/language_controller.dart';
+import '../core/localization/app_dictionary.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -19,7 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLoading = false;
   bool _showResendButton = false;
 
-  Future<void> _resendEmail() async {
+  Future<void> _resendEmail(String lang) async {
     final email = _emailController.text.trim();
     if (email.isEmpty) return;
 
@@ -28,9 +31,9 @@ class _AuthScreenState extends State<AuthScreen> {
       await _authService.resendVerificationEmail(email);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Correo de verificación re-enviado. Revisa tu bandeja de entrada.',
+              AppDictionary.text(lang, 'resend_verification'),
             ),
             backgroundColor: Colors.blue,
           ),
@@ -50,7 +53,7 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit(String lang) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final name = _nameController.text.trim();
@@ -73,12 +76,12 @@ class _AuthScreenState extends State<AuthScreen> {
         if (mounted) {
           if (response.session == null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 content: Text(
-                  '¡Cuenta creada! Revisa tu correo para verificarla antes de iniciar sesión.',
+                  AppDictionary.text(lang, 'account_created_verify'),
                 ),
                 backgroundColor: Colors.orange,
-                duration: Duration(seconds: 8),
+                duration: const Duration(seconds: 8),
               ),
             );
             setState(() {
@@ -88,7 +91,7 @@ class _AuthScreenState extends State<AuthScreen> {
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('¡Cuenta creada e iniciada exitosamente!'),
+                content: Text('Success!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -97,27 +100,21 @@ class _AuthScreenState extends State<AuthScreen> {
       }
     } on AuthException catch (e) {
       if (mounted) {
-        final isUnconfirmed = e.message.toLowerCase().contains(
-          'email not confirmed',
-        );
+        final isUnconfirmed = e.message.toLowerCase().contains('email not confirmed');
         if (isUnconfirmed) {
           setState(() => _showResendButton = true);
         }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              isUnconfirmed
-                  ? 'Debes confirmar tu correo electrónico antes de entrar.'
-                  : 'Error: ${e.message}',
-            ),
+            content: Text(isUnconfirmed 
+              ? AppDictionary.text(lang, 'email_unconfirmed')
+              : 'Error: ${e.message}'),
             backgroundColor: isUnconfirmed ? Colors.orange : Colors.redAccent,
-            action: isUnconfirmed
-                ? SnackBarAction(
-                    label: 'Re-enviar',
-                    textColor: Colors.white,
-                    onPressed: _resendEmail,
-                  )
-                : null,
+            action: isUnconfirmed ? SnackBarAction(
+              label: AppDictionary.text(lang, 'send'),
+              textColor: Colors.white,
+              onPressed: () => _resendEmail(lang),
+            ) : null,
           ),
         );
       }
@@ -139,9 +136,11 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lang = context.watch<LanguageController>().currentLanguage;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? colorScheme.surface : Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
@@ -155,85 +154,73 @@ class _AuthScreenState extends State<AuthScreen> {
                   color: colorScheme.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(
-                  Icons.directions_car_filled_rounded,
-                  size: 40,
-                  color: colorScheme.primary,
-                ),
+                child: Icon(Icons.directions_car_filled_rounded, 
+                  size: 40, color: colorScheme.primary),
               ),
               const SizedBox(height: 24),
               Text(
-                _isLogin ? 'Bienvenido de nuevo' : 'Crea tu cuenta',
+                _isLogin ? AppDictionary.text(lang, 'welcome_back') : AppDictionary.text(lang, 'create_account'),
                 style: textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: isDark ? colorScheme.onSurface : Colors.black,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
-                _isLogin
-                    ? 'Inicia sesión para continuar con tus viajes.'
-                    : 'Únete a nuestra comunidad de viajes compartidos.',
-                style: textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                _isLogin 
+                    ? AppDictionary.text(lang, 'login_subtitle')
+                    : AppDictionary.text(lang, 'signup_subtitle'),
+                style: textTheme.bodyLarge?.copyWith(
+                  color: isDark ? colorScheme.onSurfaceVariant : Colors.grey[600],
+                ),
               ),
               const SizedBox(height: 48),
               if (!_isLogin) ...[
-                _buildLabel('Nombre Completo'),
+                _buildLabel(AppDictionary.text(lang, 'full_name')),
                 TextField(
                   controller: _nameController,
-                  decoration: _inputDecoration(
-                    'Tu nombre',
-                    Icons.person_outline,
-                  ),
+                  style: TextStyle(color: colorScheme.onSurface),
+                  decoration: _inputDecoration(AppDictionary.text(lang, 'full_name'), Icons.person_outline),
                 ),
                 const SizedBox(height: 24),
-                _buildLabel('Selecciona tu Rol'),
+                _buildLabel(AppDictionary.text(lang, 'select_role')),
                 Row(
                   children: [
                     Expanded(
-                      child: _roleButton(
-                        'Pasajero',
-                        'passenger',
-                        Icons.person_search_outlined,
-                      ),
+                      child: _roleButton(AppDictionary.text(lang, 'passenger'), 'passenger', Icons.person_search_outlined),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
-                      child: _roleButton(
-                        'Conductor',
-                        'driver',
-                        Icons.drive_eta_outlined,
-                      ),
+                      child: _roleButton(AppDictionary.text(lang, 'driver'), 'driver', Icons.drive_eta_outlined),
                     ),
                   ],
                 ),
                 const SizedBox(height: 24),
               ],
-              _buildLabel('Correo Electrónico'),
+              _buildLabel(AppDictionary.text(lang, 'email')),
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                decoration: _inputDecoration(
-                  'nombre@ejemplo.com',
-                  Icons.email_outlined,
-                ),
+                style: TextStyle(color: colorScheme.onSurface),
+                decoration: _inputDecoration('nombre@ejemplo.com', Icons.email_outlined),
               ),
               const SizedBox(height: 24),
-              _buildLabel('Contraseña'),
+              _buildLabel(AppDictionary.text(lang, 'password')),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
+                style: TextStyle(color: colorScheme.onSurface),
                 decoration: _inputDecoration('••••••••', Icons.lock_outline),
               ),
               if (_showResendButton && _isLogin) ...[
                 const SizedBox(height: 16),
                 Center(
                   child: TextButton.icon(
-                    onPressed: _isLoading ? null : _resendEmail,
+                    onPressed: _isLoading ? null : () => _resendEmail(lang),
                     icon: const Icon(Icons.mark_email_read_outlined, size: 18),
-                    label: const Text('Re-enviar correo de verificación'),
+                    label: Text(AppDictionary.text(lang, 'resend_verification')),
                     style: TextButton.styleFrom(
-                      foregroundColor: Colors.orange[800],
+                      foregroundColor: isDark ? colorScheme.secondary : Colors.orange[800],
                     ),
                   ),
                 ),
@@ -243,30 +230,27 @@ class _AuthScreenState extends State<AuthScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
+                  onPressed: _isLoading ? null : () => _submit(lang),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
+                    backgroundColor: isDark ? colorScheme.primary : Colors.black,
+                    foregroundColor: isDark ? colorScheme.onPrimary : Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           height: 24,
                           width: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                            color: isDark ? colorScheme.onPrimary : Colors.white, 
+                            strokeWidth: 2
                           ),
                         )
                       : Text(
-                          _isLogin ? 'Iniciar Sesión' : 'Registrarse',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          _isLogin ? AppDictionary.text(lang, 'login_btn') : AppDictionary.text(lang, 'signup_btn'), 
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                         ),
                 ),
               ),
@@ -280,13 +264,14 @@ class _AuthScreenState extends State<AuthScreen> {
                   },
                   child: RichText(
                     text: TextSpan(
-                      text: _isLogin
-                          ? '¿No tienes una cuenta? '
-                          : '¿Ya tienes una cuenta? ',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      text: _isLogin ? AppDictionary.text(lang, 'no_account') : AppDictionary.text(lang, 'have_account'),
+                      style: TextStyle(
+                        color: isDark ? colorScheme.onSurfaceVariant : Colors.grey[600], 
+                        fontSize: 14
+                      ),
                       children: [
                         TextSpan(
-                          text: _isLogin ? 'Regístrate' : 'Inicia Sesión',
+                          text: _isLogin ? AppDictionary.text(lang, 'signup_btn') : AppDictionary.text(lang, 'login_btn'),
                           style: TextStyle(
                             color: colorScheme.primary,
                             fontWeight: FontWeight.bold,
@@ -306,25 +291,30 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildLabel(String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, left: 4),
       child: Text(
         text,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: colorScheme.onSurface.withValues(alpha: 0.8),
         ),
       ),
     );
   }
 
   InputDecoration _inputDecoration(String hint, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, size: 20),
+      hintStyle: TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+      prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
       filled: true,
-      fillColor: const Color(0xFFF5F5F5),
+      fillColor: isDark ? colorScheme.surfaceContainerHighest : const Color(0xFFF5F5F5),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -335,10 +325,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(
-          color: Theme.of(context).colorScheme.primary,
-          width: 1.5,
-        ),
+        borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 18),
     );
@@ -347,13 +334,16 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _roleButton(String title, String value, IconData icon) {
     final isSelected = _role == value;
     final colorScheme = Theme.of(context).colorScheme;
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: () => setState(() => _role = value),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? colorScheme.primary : const Color(0xFFF5F5F5),
+          color: isSelected 
+              ? colorScheme.primary 
+              : (isDark ? colorScheme.surfaceContainerHighest : const Color(0xFFF5F5F5)),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? colorScheme.primary : Colors.transparent,
@@ -362,12 +352,12 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.grey[600]),
+            Icon(icon, color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant),
             const SizedBox(height: 4),
             Text(
               title,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
+                color: isSelected ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
               ),

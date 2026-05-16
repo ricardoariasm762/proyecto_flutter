@@ -13,7 +13,16 @@ class ThemeController extends ChangeNotifier {
   bool get useMaterial3 => _useMaterial3;
 
   FlexScheme _usedScheme = FlexScheme.greyLaw;
-  FlexScheme get usedScheme => _usedScheme;
+  FlexScheme get usedScheme =>
+      _isHalaMadridMode ? FlexScheme.materialBaseline : _usedScheme;
+
+  bool _isHalaMadridMode = false;
+  bool get isHalaMadridMode => _isHalaMadridMode;
+
+  void toggleHalaMadridMode() {
+    _isHalaMadridMode = !_isHalaMadridMode;
+    notifyListeners();
+  }
 
   void setThemeMode(ThemeMode mode) {
     if (_themeMode == mode) return;

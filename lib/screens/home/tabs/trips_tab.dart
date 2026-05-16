@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/controllers/home_controller.dart';
 import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
+import '../../../theme/theme_controller.dart';
 
 class TripsTab extends StatelessWidget {
   const TripsTab({super.key});
@@ -177,6 +178,31 @@ class TripsTab extends StatelessWidget {
             ),
           ),
 
+          if (ThemeController.instance.isHalaMadridMode)
+            const Positioned(
+              top: 110,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Text(
+                  '¡HALA MADRID Y NADA MÁS!',
+                  style: TextStyle(
+                    color: Color(0xFFFEBE10),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           // Map Controls
           Positioned(
             right: 20,
@@ -340,7 +366,8 @@ class TripsTab extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: controller.recentSearches.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final search = controller.recentSearches[index];
                     return _buildLocationShortcut(

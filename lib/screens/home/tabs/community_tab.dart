@@ -35,56 +35,58 @@ class _CommunityTabState extends State<CommunityTab> {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageController>().currentLanguage;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: isDark ? colorScheme.surface : Colors.white,
           elevation: 0,
           centerTitle: false,
-          title: const Text(
-            "Comunidad",
+          title: Text(
+            AppDictionary.text(lang, 'community'),
             style: TextStyle(
-              color: Colors.black,
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 24,
             ),
           ),
           bottom: TabBar(
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.black,
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
+            indicatorColor: colorScheme.primary,
             indicatorWeight: 3,
             indicatorSize: TabBarIndicatorSize.label,
             labelStyle: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
-            tabs: const [
-              Tab(text: "Explorar"),
-              Tab(text: "Mi Grupo"),
+            tabs: [
+              Tab(text: AppDictionary.text(lang, 'explore')),
+              Tab(text: AppDictionary.text(lang, 'my_group')),
             ],
           ),
         ),
         body: TabBarView(
           children: [
-            _buildExploreTab(context, lang),
-            _buildMyGroupTab(context, lang),
+            _buildExploreTab(context, lang, colorScheme, isDark),
+            _buildMyGroupTab(context, lang, colorScheme, isDark),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildExploreTab(BuildContext context, String lang) {
+  Widget _buildExploreTab(BuildContext context, String lang, ColorScheme colorScheme, bool isDark) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _communityGroups,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.black),
+          return Center(
+            child: CircularProgressIndicator(color: colorScheme.primary),
           );
         }
         if (snapshot.hasError) {
@@ -108,17 +110,18 @@ class _CommunityTabState extends State<CommunityTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Grupos Cercanos",
+                    Text(
+                      AppDictionary.text(lang, 'nearby_groups'),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      "Encuentra personas que van en tu misma dirección.",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      AppDictionary.text(lang, 'nearby_subtitle'),
+                      style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 14),
                     ),
                   ],
                 ),
@@ -143,9 +146,9 @@ class _CommunityTabState extends State<CommunityTab> {
                   if (hasActive) {
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Ya perteneces a un grupo activo."),
-                        backgroundColor: Colors.black,
+                      SnackBar(
+                        content: Text(AppDictionary.text(lang, 'already_in_group')),
+                        backgroundColor: colorScheme.error,
                       ),
                     );
                     return;
@@ -155,13 +158,13 @@ class _CommunityTabState extends State<CommunityTab> {
 
                   await NotificationService().showNotification(
                     id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-                    title: 'Solicitud enviada',
-                    body: 'Has solicitado unirte al grupo exitosamente.',
+                    title: AppDictionary.text(lang, 'request_sent'),
+                    body: AppDictionary.text(lang, 'join_request_success'),
                   );
 
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Solicitud enviada')),
+                    SnackBar(content: Text(AppDictionary.text(lang, 'request_sent'))),
                   );
                 },
               ),
@@ -172,13 +175,13 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildMyGroupTab(BuildContext context, String lang) {
+  Widget _buildMyGroupTab(BuildContext context, String lang, ColorScheme colorScheme, bool isDark) {
     return FutureBuilder<Map<String, dynamic>?>(
       future: _rideService.getActiveGroup(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting)
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.black),
+          return Center(
+            child: CircularProgressIndicator(color: colorScheme.primary),
           );
 
         final activeGroup = snapshot.data;
@@ -190,24 +193,24 @@ class _CommunityTabState extends State<CommunityTab> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: isDark ? colorScheme.surfaceContainerHighest : Colors.grey[100],
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.group_off_rounded,
                     size: 64,
-                    color: Colors.grey,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  "Sin grupo activo",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  AppDictionary.text(lang, 'no_active_group'),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Únete a uno en la pestaña Explorar.",
-                  style: TextStyle(color: Colors.grey[600]),
+                  AppDictionary.text(lang, 'join_one_explore'),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
@@ -225,14 +228,14 @@ class _CommunityTabState extends State<CommunityTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStatusHeader(status),
+              _buildStatusHeader(status, lang, colorScheme, isDark),
               const SizedBox(height: 32),
-              const Text(
-                "Detalles del Viaje",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                AppDictionary.text(lang, 'trip_details'),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: colorScheme.onSurface),
               ),
               const SizedBox(height: 16),
-              _buildDetailCard(activeGroup),
+              _buildDetailCard(activeGroup, lang, colorScheme, isDark),
               const SizedBox(height: 32),
               if (isCreator && status == 'gathering')
                 SizedBox(
@@ -244,15 +247,15 @@ class _CommunityTabState extends State<CommunityTab> {
                       setState(() {});
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      "Buscar Conductor Ahora",
-                      style: TextStyle(
+                    child: Text(
+                      AppDictionary.text(lang, 'search_driver_now'),
+                      style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -272,13 +275,13 @@ class _CommunityTabState extends State<CommunityTab> {
                     );
                   },
                   icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  label: const Text(
-                    "Chat Grupal",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  label: Text(
+                    AppDictionary.text(lang, 'group_chat'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.black,
-                    side: const BorderSide(color: Colors.black, width: 1.5),
+                    foregroundColor: colorScheme.onSurface,
+                    side: BorderSide(color: colorScheme.onSurface, width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -292,21 +295,21 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildStatusHeader(String status) {
+  Widget _buildStatusHeader(String status, String lang, ColorScheme colorScheme, bool isDark) {
     IconData icon = Icons.people_outline;
-    String title = "Reuniendo personas";
-    String desc = "Esperando a que más miembros se unan al grupo.";
+    String title = AppDictionary.text(lang, 'status_gathering');
+    String desc = AppDictionary.text(lang, 'status_gathering_desc');
     Color color = Colors.orange;
 
     if (status == 'searching_driver') {
       icon = Icons.search_rounded;
-      title = "Buscando conductor";
-      desc = "Estamos buscando un conductor disponible cerca.";
+      title = AppDictionary.text(lang, 'status_searching');
+      desc = AppDictionary.text(lang, 'status_searching_desc');
       color = Colors.blue;
     } else if (status == 'driver_assigned') {
       icon = Icons.check_circle_outline_rounded;
-      title = "¡Conductor asignado!";
-      desc = "Tu viaje está listo para comenzar.";
+      title = AppDictionary.text(lang, 'status_assigned');
+      desc = AppDictionary.text(lang, 'status_assigned_desc');
       color = Colors.green;
     }
 
@@ -349,11 +352,11 @@ class _CommunityTabState extends State<CommunityTab> {
     );
   }
 
-  Widget _buildDetailCard(Map<String, dynamic> group) {
+  Widget _buildDetailCard(Map<String, dynamic> group, String lang, ColorScheme colorScheme, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -365,28 +368,29 @@ class _CommunityTabState extends State<CommunityTab> {
       ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.calendar_today_outlined, "Fecha", "Hoy"),
-          const Divider(height: 32),
-          _buildInfoRow(Icons.person_outline, "Miembros", "1/5 personas"),
-          const Divider(height: 32),
+          _buildInfoRow(Icons.calendar_today_outlined, AppDictionary.text(lang, 'date'), AppDictionary.text(lang, 'today'), colorScheme),
+          Divider(height: 32, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          _buildInfoRow(Icons.person_outline, AppDictionary.text(lang, 'people'), "1/5", colorScheme),
+          Divider(height: 32, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
           _buildInfoRow(
             Icons.attach_money_rounded,
-            "Costo estimado",
+            AppDictionary.text(lang, 'estimated_cost'),
             "\$6,000 COP",
+            colorScheme,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(IconData icon, String label, String value, ColorScheme colorScheme) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[400]),
+        Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: 12),
-        Text(label, style: TextStyle(color: Colors.grey[600])),
+        Text(label, style: TextStyle(color: colorScheme.onSurfaceVariant)),
         const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: colorScheme.onSurface)),
       ],
     );
   }

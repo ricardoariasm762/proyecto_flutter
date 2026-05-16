@@ -66,9 +66,38 @@ class MyApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           title: 'RideMatch Comunidad',
           themeMode: themeCtrl.themeMode,
+          builder: (context, child) {
+            return Stack(
+              children: [
+                if (child != null) child,
+                if (themeCtrl.isHalaMadridMode)
+                  IgnorePointer(
+                    child: Center(
+                      child: Opacity(
+                        opacity: 0.08, // Muy transparente
+                        child: Image.asset(
+                          'assets/videos/real-madrid-logo-symbol-design-spain-football-european-countries-football-teams-illustration-free-vector.jpg',
+                          width: 300,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
           theme: FlexThemeData.light(
             scheme: themeCtrl.usedScheme,
             useMaterial3: themeCtrl.useMaterial3,
+            // Sobrescribir colores si estamos en modo Madrid
+            primary: themeCtrl.isHalaMadridMode
+                ? const Color(0xFF00529F)
+                : null,
+            secondary: themeCtrl.isHalaMadridMode
+                ? const Color(0xFFFEBE10)
+                : null,
+            tertiary: themeCtrl.isHalaMadridMode
+                ? const Color(0xFFEE3224)
+                : null,
             surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
             blendLevel: 7,
             appBarStyle: FlexAppBarStyle.background,
@@ -102,6 +131,13 @@ class MyApp extends StatelessWidget {
           darkTheme: FlexThemeData.dark(
             scheme: themeCtrl.usedScheme,
             useMaterial3: themeCtrl.useMaterial3,
+            // Sobrescribir colores si estamos en modo Madrid
+            primary: themeCtrl.isHalaMadridMode
+                ? const Color(0xFFFEBE10)
+                : null,
+            secondary: themeCtrl.isHalaMadridMode
+                ? const Color(0xFF00529F)
+                : null,
             surfaceMode: FlexSurfaceMode.levelSurfacesLowScaffold,
             blendLevel: 13,
             appBarStyle: FlexAppBarStyle.background,

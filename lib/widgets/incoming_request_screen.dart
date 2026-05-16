@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/ride_service.dart';
+import '../core/localization/language_controller.dart';
+import '../core/localization/app_dictionary.dart';
 
 class IncomingRequestScreen extends StatefulWidget {
   final Map<String, dynamic> requestData;
@@ -21,7 +24,7 @@ class IncomingRequestScreen extends StatefulWidget {
 
 class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
   final _rideService = RideService();
-  String _requesterName = "Cargando...";
+  String _requesterName = "...";
 
   @override
   void initState() {
@@ -30,10 +33,10 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
   }
 
   Future<void> _fetchName() async {
-    final userId = widget.isDriverPing 
+    final userId = widget.isDriverPing
         ? widget.requestData['creator_id']?.toString()
         : widget.requestData['user_id']?.toString();
-        
+
     if (userId != null) {
       final name = await _rideService.getUserName(userId);
       if (mounted) {
@@ -44,7 +47,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
     } else {
       if (mounted) {
         setState(() {
-          _requesterName = "Alguien";
+          _requesterName = "User";
         });
       }
     }
@@ -52,6 +55,8 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageController>().currentLanguage;
+
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: SafeArea(
@@ -67,14 +72,18 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  widget.isDriverPing ? Icons.local_taxi_rounded : Icons.person_add_alt_1_rounded,
+                  widget.isDriverPing
+                      ? Icons.local_taxi_rounded
+                      : Icons.person_add_alt_1_rounded,
                   size: 80,
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: 40),
               Text(
-                widget.isDriverPing ? "Viaje Solicitado" : "Nueva Solicitud",
+                widget.isDriverPing
+                    ? AppDictionary.text(lang, 'ride_requested')
+                    : AppDictionary.text(lang, 'new_request'),
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
@@ -94,9 +103,9 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                widget.isDriverPing 
-                    ? "Un grupo de pasajeros necesita un conductor para su viaje compartido." 
-                    : "Quiere unirse a tu grupo actual para compartir el viaje.",
+                widget.isDriverPing
+                    ? AppDictionary.text(lang, 'driver_ping_desc')
+                    : AppDictionary.text(lang, 'passenger_ping_desc'),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 16,
@@ -109,7 +118,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
                 children: [
                   Expanded(
                     child: _buildButton(
-                      label: "Denegar",
+                      label: AppDictionary.text(lang, 'deny'),
                       color: Colors.white.withValues(alpha: 0.1),
                       textColor: Colors.white,
                       onPressed: widget.onReject,
@@ -118,7 +127,7 @@ class _IncomingRequestScreenState extends State<IncomingRequestScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildButton(
-                      label: "Aceptar",
+                      label: AppDictionary.text(lang, 'accept'),
                       color: Colors.white,
                       textColor: Colors.black,
                       onPressed: widget.onAccept,

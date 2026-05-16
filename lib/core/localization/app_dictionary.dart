@@ -1,3 +1,5 @@
+import '../../theme/theme_controller.dart';
+
 class AppDictionary {
   static const Map<String, Map<String, String>> _localizedValues = {
     'en': {
@@ -136,6 +138,9 @@ class AppDictionary {
       'deny': 'Deny',
       'accept': 'Accept',
       'save': 'Save',
+      'hala_madrid': '¡HALA MADRID! ⚪👑',
+      'madrid_mode': 'Madrid Mode Active',
+      'standard_mode': 'Standard Mode',
       'enter_address': 'Enter address',
       'set_home': 'Set Home Address',
       'set_work': 'Set Work Address',
@@ -281,6 +286,9 @@ class AppDictionary {
       'deny': 'Denegar',
       'accept': 'Aceptar',
       'save': 'Guardar',
+      'hala_madrid': '¡HALA MADRID! ⚪👑',
+      'madrid_mode': 'Modo Madrid Activo',
+      'standard_mode': 'Modo Estándar',
       'enter_address': 'Ingresar dirección',
       'set_home': 'Configurar dirección de Casa',
       'set_work': 'Configurar dirección de Trabajo',
@@ -290,6 +298,20 @@ class AppDictionary {
   };
 
   static String text(String currentLanguage, String key) {
+    // Modo Hala Madrid Invasivo
+    if (ThemeController.instance.isHalaMadridMode) {
+      final madridTexts = {
+        'where_to': '¡Vamos por otra Copa! 🏆',
+        'trips': 'Ruta a la 15ª',
+        'community': 'Afición',
+        'profile': 'Socio VIP',
+        'confirm': '¡A POR ELLOS!',
+        'shared_ride': 'Viaje Galáctico',
+        'welcome_back': '¡Hala Madrid!',
+      };
+      if (madridTexts.containsKey(key)) return madridTexts[key]!;
+    }
+
     final langDict =
         _localizedValues[currentLanguage] ?? _localizedValues['es']!;
     return langDict[key] ?? key;

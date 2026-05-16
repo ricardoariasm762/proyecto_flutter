@@ -65,9 +65,8 @@ class RideCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageController>().currentLanguage;
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final oLat = (ride['origin_lat'] as num?)?.toDouble();
-    final oLng = (ride['origin_lng'] as num?)?.toDouble();
     final dLat = (ride['dest_lat'] as num?)?.toDouble();
     final dLng = (ride['dest_lng'] as num?)?.toDouble();
     final status = (ride['status'] ?? 'gathering').toString();
@@ -76,15 +75,14 @@ class RideCard extends StatelessWidget {
         ? Future.value('--')
         : _resolveDestinationTitle(dLat, dLng);
 
-    final isPending =
-        statusRaw == 'gathering' || statusRaw == 'pending';
+    final isPending = statusRaw == 'gathering' || statusRaw == 'pending';
     final isSearching = statusRaw == 'searching_driver';
     final isActive = statusRaw == 'driver_assigned' || statusRaw == 'active';
 
     String statusLabel = AppDictionary.text(lang, 'available');
-    if (isPending) statusLabel = "Reuniendo";
-    if (isSearching) statusLabel = "Buscando Auto";
-    if (isActive) statusLabel = "Asignado";
+    if (isPending) statusLabel = AppDictionary.text(lang, 'status_gathering');
+    if (isSearching) statusLabel = AppDictionary.text(lang, 'status_searching');
+    if (isActive) statusLabel = AppDictionary.text(lang, 'status_assigned');
 
     final statusFg = isPending
         ? const Color(0xFFE65100)
@@ -101,17 +99,19 @@ class RideCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
-              )
+              ),
             ],
             border: Border.all(
-              color: isPending ? Colors.orange.withValues(alpha: 0.3) : Colors.grey.withValues(alpha: 0.1),
+              color: isPending
+                  ? Colors.orange.withValues(alpha: 0.3)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -142,22 +142,37 @@ class RideCard extends StatelessWidget {
                           builder: (context, snapshot) {
                             final dest = (snapshot.data ?? '').trim();
                             return Text(
-                              dest.isNotEmpty && dest != '--' ? dest : 'Calculando...',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              dest.isNotEmpty && dest != '--'
+                                  ? dest
+                                  : AppDictionary.text(
+                                      lang,
+                                      'calculating_location',
+                                    ),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: colorScheme.onSurface,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             );
                           },
                         ),
                         Text(
-                          'Destino del viaje',
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          AppDictionary.text(lang, 'destination'),
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: statusBg,
                       borderRadius: BorderRadius.circular(10),
@@ -177,20 +192,37 @@ class RideCard extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  _buildInfoChip(Icons.people_outline, "$members/5"),
+                  _buildInfoChip(
+                    Icons.people_outline,
+                    "$members/5",
+                    colorScheme,
+                    isDark,
+                  ),
                   const SizedBox(width: 8),
-                  _buildInfoChip(Icons.event_seat_outlined, "$seatsLeft asientos"),
+                  _buildInfoChip(
+                    Icons.event_seat_outlined,
+                    "$seatsLeft ${AppDictionary.text(lang, 'seats')}",
+                    colorScheme,
+                    isDark,
+                  ),
                   const Spacer(),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         "\$${splitFare.toStringAsFixed(0)}",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: colorScheme.onSurface,
+                        ),
                       ),
-                      const Text(
-                        "por persona",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
+                      Text(
+                        AppDictionary.text(lang, 'per_person'),
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -204,12 +236,21 @@ class RideCard extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onJoin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark
+                          ? colorScheme.primary
+                          : Colors.black,
+                      foregroundColor: isDark
+                          ? colorScheme.onPrimary
+                          : Colors.white,
                       elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text('Unirse al Grupo', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      AppDictionary.text(lang, 'join_group'),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],
@@ -220,21 +261,30 @@ class RideCard extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label) {
+  Widget _buildInfoChip(
+    IconData icon,
+    String label,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: isDark ? colorScheme.surface : const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.grey[700]),
+          Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: Colors.grey[700], fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
