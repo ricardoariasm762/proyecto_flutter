@@ -11,9 +11,11 @@ import 'core/controllers/home_controller.dart';
 import 'services/location_service.dart';
 import 'services/ride_service.dart';
 import 'services/notification_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
 
   await Supabase.initialize(
     url: 'https://mowhkgekfndkbjddchiz.supabase.co',
@@ -43,8 +45,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
+    return AnimatedBuilder(
+      animation: Listenable.merge([
         ThemeController.instance,
         context.read<LanguageController>(),
       ]),

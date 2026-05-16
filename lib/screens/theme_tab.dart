@@ -87,9 +87,9 @@ class ThemeTab extends StatelessWidget {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+        color: isDark ? colorScheme.surfaceVariant : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant.withOpacity(0.1)),
+        border: Border.all(color: colorScheme.outline.withOpacity(0.1)),
       ),
       child: Column(
         children: [
@@ -181,13 +181,13 @@ class ThemeTab extends StatelessWidget {
                   color: isSelected
                       ? colorScheme.primary.withOpacity(0.1)
                       : (isDark
-                            ? colorScheme.surfaceContainerHighest
+                            ? colorScheme.surfaceVariant
                             : Colors.white),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? colorScheme.primary
-                        : colorScheme.outlineVariant.withOpacity(0.1),
+                        : colorScheme.outline.withOpacity(0.1),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
@@ -265,10 +265,10 @@ class ThemeTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+        color: isDark ? colorScheme.surfaceVariant : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.outlineVariant.withOpacity(0.1),
+          color: colorScheme.outline.withOpacity(0.1),
         ),
       ),
       child: Row(
@@ -314,7 +314,7 @@ class ThemeTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+        color: isDark ? colorScheme.surfaceVariant : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(

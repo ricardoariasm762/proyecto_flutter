@@ -99,7 +99,7 @@ class RideCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+            color: isDark ? colorScheme.surfaceVariant : Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -111,7 +111,7 @@ class RideCard extends StatelessWidget {
             border: Border.all(
               color: isPending
                   ? Colors.orange.withOpacity(0.3)
-                  : colorScheme.outlineVariant.withOpacity(0.1),
+                  : colorScheme.outline.withOpacity(0.1),
               width: 1,
             ),
           ),

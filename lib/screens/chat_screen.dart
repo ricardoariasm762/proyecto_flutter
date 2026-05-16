@@ -77,7 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
           preferredSize: const Size.fromHeight(1),
           child: Divider(
             height: 1,
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outline.withOpacity(0.5),
           ),
         ),
       ),
@@ -171,7 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               color: isMe
                                   ? colorScheme.primary
                                   : (isDark
-                                        ? colorScheme.surfaceContainerHighest
+                                        ? colorScheme.surfaceVariant
                                         : const Color(0xFFF0F0F0)),
                               borderRadius: BorderRadius.only(
                                 topLeft: const Radius.circular(16),
@@ -231,7 +231,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 hintText: "Escribe un mensaje...",
                 filled: true,
                 fillColor: isDark
-                    ? colorScheme.surfaceContainerHighest
+                    ? colorScheme.surfaceVariant
                     : const Color(0xFFF5F5F5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),

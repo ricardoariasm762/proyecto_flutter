@@ -363,7 +363,7 @@ class _AuthScreenState extends State<AuthScreen> {
       prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
       filled: true,
       fillColor: isDark
-          ? colorScheme.surfaceContainerHighest
+          ? colorScheme.surfaceVariant
           : const Color(0xFFF5F5F5),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -394,7 +394,7 @@ class _AuthScreenState extends State<AuthScreen> {
           color: isSelected
               ? colorScheme.primary
               : (isDark
-                    ? colorScheme.surfaceContainerHighest
+                    ? colorScheme.surfaceVariant
                     : const Color(0xFFF5F5F5)),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(

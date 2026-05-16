@@ -211,7 +211,7 @@ class _CommunityTabState extends State<CommunityTab> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? colorScheme.surfaceContainerHighest
+                        ? colorScheme.surfaceVariant
                         : Colors.grey[100],
                     shape: BoxShape.circle,
                   ),
@@ -396,7 +396,7 @@ class _CommunityTabState extends State<CommunityTab> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+        color: isDark ? colorScheme.surfaceVariant : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -416,7 +416,7 @@ class _CommunityTabState extends State<CommunityTab> {
           ),
           Divider(
             height: 32,
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outline.withOpacity(0.5),
           ),
           _buildInfoRow(
             Icons.person_outline,
@@ -426,7 +426,7 @@ class _CommunityTabState extends State<CommunityTab> {
           ),
           Divider(
             height: 32,
-            color: colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outline.withOpacity(0.5),
           ),
           _buildInfoRow(
             Icons.attach_money_rounded,

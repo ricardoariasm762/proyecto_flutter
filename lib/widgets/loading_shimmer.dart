@@ -10,7 +10,7 @@ class LoadingShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final base = scheme.surfaceContainerHighest;
+    final base = scheme.surfaceVariant;
     final highlight = Color.lerp(base, scheme.onSurface, 0.12) ?? scheme.surfaceContainerHigh;
 
     return ListView.builder(

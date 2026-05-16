@@ -141,7 +141,7 @@ class ProfileTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+        color: isDark ? colorScheme.surfaceVariant : Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -221,10 +221,10 @@ class _OptionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surfaceContainerHighest : Colors.white,
+          color: isDark ? colorScheme.surfaceVariant : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: colorScheme.outlineVariant.withOpacity(isDark ? 0.2 : 0.5),
+            color: colorScheme.outline.withOpacity(isDark ? 0.2 : 0.5),
           ),
         ),
         child: Row(

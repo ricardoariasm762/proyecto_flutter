@@ -430,9 +430,17 @@ class TripsTab extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  controller.aiSuggestedPrice != null
-                      ? '\$${controller.aiSuggestedPrice!.toInt()}'
-                      : '\$${(((controller.routeDistance ?? 0) / 1000) * 1500).toInt()}',
+                  () {
+                    if (controller.aiSuggestedPrice != null &&
+                        controller.aiSuggestedPrice!.isFinite) {
+                      return '\$${controller.aiSuggestedPrice!.round()}';
+                    }
+                    final distance = controller.routeDistance ?? 0;
+                    if (distance.isFinite && distance > 0) {
+                      return '\$${((distance / 1000) * 1500).round()}';
+                    }
+                    return '\$0';
+                  }(),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -501,7 +509,7 @@ class TripsTab extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? colorScheme.surfaceContainerHighest
+                              ? colorScheme.surfaceVariant
                               : const Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -626,12 +634,10 @@ class TripsTab extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark
-              ? colorScheme.surfaceContainerHighest
-              : const Color(0xFFF8F8F8),
+          color: isDark ? colorScheme.surfaceVariant : const Color(0xFFF8F8F8),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: colorScheme.outlineVariant.withOpacity(isDark ? 0.2 : 0.5),
+            color: colorScheme.outline.withOpacity(isDark ? 0.2 : 0.5),
           ),
         ),
         child: Row(

@@ -106,8 +106,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return ListenableBuilder(
-      listenable: ThemeController.instance,
+    return AnimatedBuilder(
+      animation: ThemeController.instance,
       builder: (context, _) {
         final isMadrid = ThemeController.instance.isHalaMadridMode;
 

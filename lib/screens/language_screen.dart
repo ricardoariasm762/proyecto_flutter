@@ -76,12 +76,12 @@ class LanguageScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary.withOpacity(0.1)
-              : (isDark ? colorScheme.surfaceContainerHighest : Colors.white),
+              : (isDark ? colorScheme.surfaceVariant : Colors.white),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
-                : colorScheme.outlineVariant.withOpacity(0.1),
+                : colorScheme.outline.withOpacity(0.1),
             width: isSelected ? 2 : 1,
           ),
         ),
