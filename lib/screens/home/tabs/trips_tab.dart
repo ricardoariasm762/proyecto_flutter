@@ -431,8 +431,8 @@ class TripsTab extends StatelessWidget {
                 ),
                 Text(
                   controller.aiSuggestedPrice != null
-                      ? '\$${controller.aiSuggestedPrice!.toStringAsFixed(0)}'
-                      : '\$${((controller.routeDistance ?? 0) / 1000 * 1500).toStringAsFixed(0)}',
+                      ? '\$${controller.aiSuggestedPrice!.toInt()}'
+                      : '\$${(((controller.routeDistance ?? 0) / 1000) * 1500).toInt()}',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
