@@ -165,6 +165,30 @@ class _CommunityTabState extends State<CommunityTab> {
                 seatsLeft: availableSeats,
                 totalFare: offeredPrice,
                 splitFare: offeredPrice,
+                onAccept: !isDriver
+                    ? null
+                    : () async {
+                        final groupId = (group['id'] ?? '').toString();
+                        if (groupId.isEmpty) return;
+
+                        await _rideService.acceptRide(groupId: groupId);
+
+                        await NotificationService().showNotification(
+                          id: DateTime.now().millisecondsSinceEpoch.remainder(
+                            100000,
+                          ),
+                          title: 'Viaje Aceptado',
+                          body: 'Has aceptado el viaje. ¡En marcha!',
+                        );
+
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('¡Viaje aceptado!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
                 onJoin: isDriver
                     ? null
                     : () async {

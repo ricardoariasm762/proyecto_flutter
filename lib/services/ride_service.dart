@@ -234,6 +234,21 @@ class RideService {
         .eq('id', groupId);
   }
 
+  // ==========================================
+  // FASE 2: CONDUCTORES (Aceptar viajes)
+  // ==========================================
+
+  Future<void> acceptRide({required String groupId}) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) throw Exception('auth-required');
+
+    // Actualizar el grupo con el ID del conductor y cambiar estado
+    await _client
+        .from('groups')
+        .update({'driver_id': user.id, 'status': 'driver_assigned'})
+        .eq('id', groupId);
+  }
+
   Future<void> goOnline(double lat, double lng) async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;

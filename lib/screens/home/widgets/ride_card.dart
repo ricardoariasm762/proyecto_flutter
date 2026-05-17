@@ -14,6 +14,7 @@ class RideCard extends StatelessWidget {
     required this.splitFare,
     this.onOpenDetails,
     this.onJoin,
+    this.onAccept,
     this.onOpenChat,
     this.onRate,
     super.key,
@@ -26,6 +27,7 @@ class RideCard extends StatelessWidget {
   final double splitFare;
   final VoidCallback? onOpenDetails;
   final VoidCallback? onJoin;
+  final VoidCallback? onAccept;
   final VoidCallback? onOpenChat;
   final VoidCallback? onRate;
 
@@ -253,6 +255,28 @@ class RideCard extends StatelessWidget {
                     child: Text(
                       AppDictionary.text(lang, 'join_group'),
                       style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+              if (onAccept != null && isSearching) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: onAccept,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'ACEPTAR VIAJE',
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
