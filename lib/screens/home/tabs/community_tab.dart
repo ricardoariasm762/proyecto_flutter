@@ -36,11 +36,13 @@ class _CommunityTabState extends State<CommunityTab> {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageController>().currentLanguage;
+    final controller = context.watch<HomeController>();
+    final isDriver = controller.userRole == 'driver';
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return DefaultTabController(
-      length: 2,
+      length: isDriver ? 1 : 2,
       child: Scaffold(
         backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
         appBar: AppBar(
@@ -48,35 +50,47 @@ class _CommunityTabState extends State<CommunityTab> {
           elevation: 0,
           centerTitle: false,
           title: Text(
-            AppDictionary.text(lang, 'community'),
+            isDriver
+                ? 'Viajes Disponibles'
+                : AppDictionary.text(lang, 'community'),
             style: TextStyle(
               color: colorScheme.onSurface,
               fontWeight: FontWeight.bold,
               fontSize: 24,
             ),
           ),
-          bottom: TabBar(
-            labelColor: colorScheme.primary,
-            unselectedLabelColor: colorScheme.onSurfaceVariant,
-            indicatorColor: colorScheme.primary,
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.label,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-            tabs: [
-              Tab(text: AppDictionary.text(lang, 'explore')),
-              Tab(text: AppDictionary.text(lang, 'my_group')),
-            ],
-          ),
+          bottom: isDriver
+              ? null
+              : TabBar(
+                  labelColor: colorScheme.primary,
+                  unselectedLabelColor: colorScheme.onSurfaceVariant,
+                  indicatorColor: colorScheme.primary,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelStyle: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                  tabs: [
+                    Tab(text: AppDictionary.text(lang, 'explore')),
+                    Tab(text: AppDictionary.text(lang, 'my_group')),
+                  ],
+                ),
         ),
-        body: TabBarView(
-          children: [
-            _buildExploreTab(context, lang, colorScheme, isDark),
-            _buildMyGroupTab(context, lang, colorScheme, isDark),
-          ],
-        ),
+        body: isDriver
+            ? _buildExploreTab(context, lang, colorScheme, isDark, isDriver)
+            : TabBarView(
+                children: [
+                  _buildExploreTab(
+                    context,
+                    lang,
+                    colorScheme,
+                    isDark,
+                    isDriver,
+                  ),
+                  _buildMyGroupTab(context, lang, colorScheme, isDark),
+                ],
+              ),
       ),
     );
   }
@@ -86,6 +100,7 @@ class _CommunityTabState extends State<CommunityTab> {
     String lang,
     ColorScheme colorScheme,
     bool isDark,
+    bool isDriver,
   ) {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _communityGroups,
@@ -150,39 +165,49 @@ class _CommunityTabState extends State<CommunityTab> {
                 seatsLeft: availableSeats,
                 totalFare: offeredPrice,
                 splitFare: offeredPrice,
-                onJoin: () async {
-                  final groupId = (group['id'] ?? '').toString();
-                  if (groupId.isEmpty) return;
+                onJoin: isDriver
+                    ? null
+                    : () async {
+                        final groupId = (group['id'] ?? '').toString();
+                        if (groupId.isEmpty) return;
 
-                  final hasActive = await _rideService.hasActiveGroupRequest();
-                  if (hasActive) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppDictionary.text(lang, 'already_in_group'),
-                        ),
-                        backgroundColor: colorScheme.error,
-                      ),
-                    );
-                    return;
-                  }
+                        final hasActive = await _rideService
+                            .hasActiveGroupRequest();
+                        if (hasActive) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                AppDictionary.text(lang, 'already_in_group'),
+                              ),
+                              backgroundColor: colorScheme.error,
+                            ),
+                          );
+                          return;
+                        }
 
-                  await _rideService.requestJoinGroup(groupId: groupId);
+                        await _rideService.requestJoinGroup(groupId: groupId);
 
-                  await NotificationService().showNotification(
-                    id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-                    title: AppDictionary.text(lang, 'request_sent'),
-                    body: AppDictionary.text(lang, 'join_request_success'),
-                  );
+                        await NotificationService().showNotification(
+                          id: DateTime.now().millisecondsSinceEpoch.remainder(
+                            100000,
+                          ),
+                          title: AppDictionary.text(lang, 'request_sent'),
+                          body: AppDictionary.text(
+                            lang,
+                            'join_request_success',
+                          ),
+                        );
 
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppDictionary.text(lang, 'request_sent')),
-                    ),
-                  );
-                },
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppDictionary.text(lang, 'request_sent'),
+                            ),
+                          ),
+                        );
+                      },
               ),
             );
           },

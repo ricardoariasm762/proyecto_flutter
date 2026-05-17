@@ -27,7 +27,7 @@ class HomeController extends ChangeNotifier {
   String? customDestinationTitle;
 
   String userRole = 'passenger';
-  bool isDriverOnline = false;
+  // Eliminada la variable isDriverOnline redundante
 
   num? routeDistance;
   num? routeDuration;
@@ -63,6 +63,9 @@ class HomeController extends ChangeNotifier {
   void _listenToActiveTrip() {
     _rideService.getActiveGroupStream().listen((trip) {
       activeTripData = trip;
+      // Actualizar el estado de online basado en activeTripData si es conductor
+      notifyListeners();
+
       if (trip == null) {
         isSearching = false;
         isGatheringMembers = false;
@@ -184,9 +187,9 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get isDriverOnline => activeTripData?['is_online'] ?? false;
+
   Future<void> toggleDriverOnline(bool val, BuildContext context) async {
-    isDriverOnline = val;
-    notifyListeners();
     try {
       if (val) {
         if (currentPosition != null) {
@@ -199,6 +202,7 @@ class HomeController extends ChangeNotifier {
         await _rideService.goOffline();
       }
     } catch (_) {}
+    notifyListeners();
   }
 
   Future<void> getLocation(BuildContext context, String currentLanguage) async {

@@ -237,11 +237,11 @@ class RideService {
   Future<void> goOnline(double lat, double lng) async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;
-
-    await _client.from('drivers_online').upsert({
-      'user_id': user.id,
-      'lat': lat,
-      'lng': lng,
+    await _client.from('active_drivers').upsert({
+      'id': user.id,
+      'last_lat': lat,
+      'last_lng': lng,
+      'is_online': true,
       'updated_at': DateTime.now().toIso8601String(),
     });
   }
@@ -249,7 +249,7 @@ class RideService {
   Future<void> goOffline() async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;
-    await _client.from('drivers_online').delete().eq('user_id', user.id);
+    await _client.from('active_drivers').delete().eq('id', user.id);
   }
 
   void listenForDriverPings(

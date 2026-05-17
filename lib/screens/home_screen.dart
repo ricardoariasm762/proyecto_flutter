@@ -102,7 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final controller = context.watch<HomeController>();
     final lang = context.watch<LanguageController>().currentLanguage;
 
-    final pages = [const TripsTab(), const CommunityTab(), const ProfileTab()];
+    final isDriver = controller.userRole == 'driver';
+
+    final pages = isDriver
+        ? [const CommunityTab(), const ProfileTab()]
+        : [const TripsTab(), const CommunityTab(), const ProfileTab()];
 
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -136,6 +140,32 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
+            actions: [
+              if (isDriver)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: Row(
+                    children: [
+                      Text(
+                        controller.isDriverOnline ? 'Online' : 'Offline',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: controller.isDriverOnline
+                              ? Colors.green
+                              : Colors.grey,
+                        ),
+                      ),
+                      Switch(
+                        value: controller.isDriverOnline,
+                        onChanged: (val) =>
+                            controller.toggleDriverOnline(val, context),
+                        activeColor: Colors.green,
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
           body: Stack(
             children: [
@@ -189,19 +219,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     onDestinationSelected: (index) =>
                         controller.setTabIndex(index),
                     destinations: [
-                      NavigationDestination(
-                        icon: Icon(
-                          Icons.map_outlined,
-                          color: colorScheme.onSurfaceVariant,
+                      if (!isDriver)
+                        NavigationDestination(
+                          icon: Icon(
+                            Icons.map_outlined,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          selectedIcon: Icon(
+                            Icons.map_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          label: isMadrid
+                              ? 'Copa'
+                              : AppDictionary.text(lang, 'trips'),
                         ),
-                        selectedIcon: Icon(
-                          Icons.map_rounded,
-                          color: colorScheme.primary,
-                        ),
-                        label: isMadrid
-                            ? 'Copa'
-                            : AppDictionary.text(lang, 'trips'),
-                      ),
                       NavigationDestination(
                         icon: Icon(
                           isMadrid

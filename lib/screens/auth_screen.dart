@@ -66,10 +66,10 @@ class _AuthScreenState extends State<AuthScreen> {
         await _authService.signIn(email, password);
       } else {
         final response = await _authService.signUp(
-          email,
-          password,
-          name,
-          _role,
+          email: email,
+          password: password,
+          fullName: name,
+          role: _role,
         );
         if (mounted) {
           if (response.session == null) {
@@ -204,7 +204,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: _roleButton(
                         AppDictionary.text(lang, 'passenger'),
                         'passenger',
-                        Icons.person_search_outlined,
+                        Icons.person_outline,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -212,7 +212,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       child: _roleButton(
                         AppDictionary.text(lang, 'driver'),
                         'driver',
-                        Icons.drive_eta_outlined,
+                        Icons.directions_car_outlined,
                       ),
                     ),
                   ],
@@ -362,9 +362,7 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       prefixIcon: Icon(icon, size: 20, color: colorScheme.primary),
       filled: true,
-      fillColor: isDark
-          ? colorScheme.surfaceVariant
-          : const Color(0xFFF5F5F5),
+      fillColor: isDark ? colorScheme.surfaceVariant : const Color(0xFFF5F5F5),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
@@ -393,9 +391,7 @@ class _AuthScreenState extends State<AuthScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary
-              : (isDark
-                    ? colorScheme.surfaceVariant
-                    : const Color(0xFFF5F5F5)),
+              : (isDark ? colorScheme.surfaceVariant : const Color(0xFFF5F5F5)),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? colorScheme.primary : Colors.transparent,
