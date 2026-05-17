@@ -10,6 +10,7 @@ import 'home/tabs/trips_tab.dart';
 import 'home/tabs/community_tab.dart';
 import 'home/tabs/profile_tab.dart';
 import '../widgets/incoming_request_screen.dart';
+import '../widgets/home_navigation_drawer.dart';
 import '../theme/theme_controller.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -112,16 +113,44 @@ class _HomeScreenState extends State<HomeScreen> {
         final isMadrid = ThemeController.instance.isHalaMadridMode;
 
         return Scaffold(
+          drawer: const HomeNavigationDrawer(),
           appBar: AppBar(
             title: Text(AppDictionary.text(lang, 'app_title')),
             backgroundColor: Colors.transparent,
             elevation: 0,
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu_rounded),
+                onPressed: () {
+                  if (controller.isSearching ||
+                      controller.isGatheringMembers ||
+                      controller.isOnTrip) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cancela el viaje actual para navegar'),
+                      ),
+                    );
+                    return;
+                  }
+                  Scaffold.of(context).openDrawer();
+                },
+              ),
+            ),
           ),
           body: Stack(
             children: [
               pages[controller.currentTabIndex],
-              if (controller.isSearching || controller.isGatheringMembers || controller.isOnTrip)
-                _buildActiveSearchOverlay(context, controller, lang, colorScheme, isDark),
+              if (controller.isSearching ||
+                  controller.isGatheringMembers ||
+                  controller.isOnTrip ||
+                  controller.isPaymentPending)
+                _buildActiveSearchOverlay(
+                  context,
+                  controller,
+                  lang,
+                  colorScheme,
+                  isDark,
+                ),
             ],
           ),
           floatingActionButton: isMadrid
@@ -132,7 +161,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text('⚽', style: TextStyle(fontSize: 24)),
                 )
               : null,
-          bottomNavigationBar: (controller.isSearching || controller.isGatheringMembers || controller.isOnTrip)
+          bottomNavigationBar:
+              (controller.isSearching ||
+                  controller.isGatheringMembers ||
+                  controller.isOnTrip ||
+                  controller.isPaymentPending)
               ? null
               : Container(
                   decoration: BoxDecoration(
@@ -147,11 +180,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: NavigationBar(
                     height: 65,
-                    backgroundColor: isDark ? colorScheme.surface : Colors.white,
+                    backgroundColor: isDark
+                        ? colorScheme.surface
+                        : Colors.white,
                     elevation: 0,
                     indicatorColor: colorScheme.primary.withOpacity(0.1),
                     selectedIndex: controller.currentTabIndex,
-                    onDestinationSelected: (index) => controller.setTabIndex(index),
+                    onDestinationSelected: (index) =>
+                        controller.setTabIndex(index),
                     destinations: [
                       NavigationDestination(
                         icon: Icon(
@@ -162,7 +198,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icons.map_rounded,
                           color: colorScheme.primary,
                         ),
-                        label: isMadrid ? 'Copa' : AppDictionary.text(lang, 'trips'),
+                        label: isMadrid
+                            ? 'Copa'
+                            : AppDictionary.text(lang, 'trips'),
                       ),
                       NavigationDestination(
                         icon: Icon(
@@ -213,21 +251,111 @@ class _HomeScreenState extends State<HomeScreen> {
     ColorScheme colorScheme,
     bool isDark,
   ) {
+    if (controller.isOnTrip) {
+      // Modo Viaje: Panel inferior pequeño para ver el mapa
+      return Align(
+        alignment: Alignment.bottomCenter,
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? colorScheme.surface : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.directions_car_rounded,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Viaje en curso',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          'El conductor se dirige al destino',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    '\$${controller.offeredPrice?.toInt() ?? 0}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () {
+                    if (controller.currentGroupId != null) {
+                      context.read<RideService>().completeGroup(
+                        controller.currentGroupId!,
+                      );
+                    }
+                  },
+                  child: const Text('Simular Llegada (Test)'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     String statusTitle = 'Buscando acompañantes...';
     String statusSubtitle = 'Esperando que otros se unan a tu viaje';
     IconData statusIcon = Icons.groups_rounded;
     Color statusColor = Colors.orange;
+    String primaryButtonLabel = 'BUSCAR CONDUCTOR AHORA';
+    VoidCallback? onPrimaryTap = () =>
+        controller.startDriverSearch(context, lang);
 
     if (controller.isSearching) {
       statusTitle = 'Buscando conductor...';
       statusSubtitle = 'Estamos enviando tu oferta a conductores cercanos';
       statusIcon = Icons.search_rounded;
       statusColor = colorScheme.primary;
-    } else if (controller.isOnTrip) {
-      statusTitle = 'Viaje en curso';
-      statusSubtitle = 'El conductor está en camino o ya están viajando';
-      statusIcon = Icons.directions_car_rounded;
+      primaryButtonLabel = ''; // No hay botón primario en búsqueda
+      onPrimaryTap = null;
+    } else if (controller.isPaymentPending) {
+      statusTitle = '¡Has llegado!';
+      statusSubtitle = 'Por favor confirma el pago al conductor';
+      statusIcon = Icons.check_circle_rounded;
       statusColor = Colors.green;
+      primaryButtonLabel = 'CONFIRMAR PAGO';
+      onPrimaryTap = () => controller.confirmPayment();
     }
 
     return Container(
@@ -256,9 +384,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: statusColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: (controller.isSearching) 
-                  ? const CircularProgressIndicator()
-                  : Icon(statusIcon, size: 48, color: statusColor),
+                child: (controller.isSearching)
+                    ? const CircularProgressIndicator()
+                    : Icon(statusIcon, size: 48, color: statusColor),
               ),
               const SizedBox(height: 24),
               Text(
@@ -292,7 +420,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Oferta actual', style: TextStyle(fontSize: 12)),
+                        const Text(
+                          'Total a pagar',
+                          style: TextStyle(fontSize: 12),
+                        ),
                         Text(
                           '\$${controller.offeredPrice?.toInt() ?? 0}',
                           style: TextStyle(
@@ -306,43 +437,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (controller.isSearching)
                       Row(
                         children: [
-                          _buildQuickPriceBtn('-500', () => controller.updateOfferedPrice((controller.offeredPrice ?? 0) - 500), colorScheme),
+                          _buildQuickPriceBtn(
+                            '-500',
+                            () => controller.updateOfferedPrice(
+                              (controller.offeredPrice ?? 0) - 500,
+                            ),
+                            colorScheme,
+                          ),
                           const SizedBox(width: 8),
-                          _buildQuickPriceBtn('+500', () => controller.updateOfferedPrice((controller.offeredPrice ?? 0) + 500), colorScheme),
+                          _buildQuickPriceBtn(
+                            '+500',
+                            () => controller.updateOfferedPrice(
+                              (controller.offeredPrice ?? 0) + 500,
+                            ),
+                            colorScheme,
+                          ),
                         ],
                       ),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
-              if (controller.isGatheringMembers)
+              if (primaryButtonLabel.isNotEmpty)
                 SizedBox(
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: () => controller.startDriverSearch(context, lang),
+                    onPressed: onPrimaryTap,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
-                    child: const Text('BUSCAR CONDUCTOR AHORA', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: Text(
+                      primaryButtonLabel,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: OutlinedButton(
-                  onPressed: () => controller.cancelSearch(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                    side: BorderSide(color: colorScheme.error),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              if (!controller.isPaymentPending)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: () => controller.cancelSearch(),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colorScheme.error,
+                      side: BorderSide(color: colorScheme.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'CANCELAR',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
-                  child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-              ),
             ],
           ),
         ),
@@ -350,7 +504,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickPriceBtn(String label, VoidCallback onTap, ColorScheme colorScheme) {
+  Widget _buildQuickPriceBtn(
+    String label,
+    VoidCallback onTap,
+    ColorScheme colorScheme,
+  ) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -361,8 +519,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Text(
           label,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
         ),
       ),
     );
+  }
 }

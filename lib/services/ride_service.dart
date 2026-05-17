@@ -54,6 +54,13 @@ class RideService {
         .eq('id', groupId);
   }
 
+  Future<void> completeGroup(String groupId) async {
+    await _client
+        .from('groups')
+        .update({'status': 'completed'})
+        .eq('id', groupId);
+  }
+
   Stream<List<Map<String, dynamic>>> getGatheringGroupsStreamExcludingUser({
     String? excludeUserId,
   }) {

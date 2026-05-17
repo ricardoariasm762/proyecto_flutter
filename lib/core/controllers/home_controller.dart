@@ -42,6 +42,7 @@ class HomeController extends ChangeNotifier {
   bool isSearching = false;
   bool isGatheringMembers = false;
   bool isOnTrip = false;
+  bool isPaymentPending = false;
   double? offeredPrice;
   String? currentGroupId;
 
@@ -66,6 +67,7 @@ class HomeController extends ChangeNotifier {
         isSearching = false;
         isGatheringMembers = false;
         isOnTrip = false;
+        isPaymentPending = false;
         currentGroupId = null;
       } else {
         currentGroupId = trip['id']?.toString();
@@ -75,14 +77,22 @@ class HomeController extends ChangeNotifier {
           isGatheringMembers = true;
           isSearching = false;
           isOnTrip = false;
+          isPaymentPending = false;
         } else if (status == 'searching_driver') {
           isGatheringMembers = false;
           isSearching = true;
           isOnTrip = false;
+          isPaymentPending = false;
         } else if (status == 'driver_assigned' || status == 'active') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = true;
+          isPaymentPending = false;
+        } else if (status == 'completed') {
+          isGatheringMembers = false;
+          isSearching = false;
+          isOnTrip = false;
+          isPaymentPending = true;
         }
 
         if (trip['offered_price'] != null) {
@@ -460,5 +470,15 @@ class HomeController extends ChangeNotifier {
     if (currentGroupId != null) {
       await _rideService.updateOfferedPrice(currentGroupId!, newPrice);
     }
+  }
+
+  Future<void> confirmPayment() async {
+    // En una app real, aquí se procesaría el pago
+    if (currentGroupId != null) {
+      // Podríamos llamar a un servicio para archivar el viaje
+    }
+    isPaymentPending = false;
+    clearDestination();
+    notifyListeners();
   }
 }
