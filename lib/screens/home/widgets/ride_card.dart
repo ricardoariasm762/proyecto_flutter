@@ -91,6 +91,9 @@ class RideCard extends StatelessWidget {
         ? const Color(0xFFFFE0B2)
         : (isActive ? const Color(0xFFC8E6C9) : const Color(0x1A6D3FD1));
 
+    final displayFare =
+        (ride['offered_price'] as num?)?.toDouble() ?? splitFare;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -210,7 +213,7 @@ class RideCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        "\$${splitFare.toStringAsFixed(0)}",
+                        "\$${displayFare.toStringAsFixed(0)}",
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,

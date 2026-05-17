@@ -16,6 +16,7 @@ class RideService {
     required double destLat,
     required double destLng,
     int availableSeats = 1,
+    double? offeredPrice,
   }) async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) throw Exception('auth-required');
@@ -28,7 +29,29 @@ class RideService {
       'dest_lng': destLng,
       'status': 'gathering',
       'available_seats': availableSeats,
+      'offered_price': offeredPrice,
     });
+  }
+
+  Future<void> findDriver(String groupId) async {
+    await _client
+        .from('groups')
+        .update({'status': 'searching_driver'})
+        .eq('id', groupId);
+  }
+
+  Future<void> updateOfferedPrice(String groupId, double newPrice) async {
+    await _client
+        .from('groups')
+        .update({'offered_price': newPrice})
+        .eq('id', groupId);
+  }
+
+  Future<void> cancelGroup(String groupId) async {
+    await _client
+        .from('groups')
+        .update({'status': 'cancelled'})
+        .eq('id', groupId);
   }
 
   Stream<List<Map<String, dynamic>>> getGatheringGroupsStreamExcludingUser({
@@ -37,14 +60,18 @@ class RideService {
     final query = _client
         .from('groups')
         .stream(primaryKey: ['id'])
-        .eq('status', 'gathering')
         .order('created_at', ascending: false);
-
-    if (excludeUserId == null || excludeUserId.isEmpty) return query;
 
     return query.map((rows) {
       return rows
-          .where((r) => (r['creator_id'] ?? '').toString() != excludeUserId)
+          .where((r) {
+            final status = r['status']?.toString() ?? '';
+            final isCreator =
+                (r['creator_id'] ?? '').toString() == excludeUserId;
+            final isActiveStatus =
+                status == 'gathering' || status == 'searching_driver';
+            return !isCreator && isActiveStatus;
+          })
           .toList(growable: false);
     });
   }

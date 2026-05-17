@@ -146,6 +146,11 @@ class AppDictionary {
       'set_work': 'Set Work Address',
       'location_not_found': 'Location not found',
       'no_recent_searches': 'No recent searches yet',
+      'searching_driver': 'Searching for drivers...',
+      'searching_driver_desc': 'We are looking for a match for your ride.',
+      'gathering_members': 'Gathering members...',
+      'gathering_members_desc': 'Waiting for other passengers to join.',
+      'find_driver': 'Find Driver',
     },
     'es': {
       'getting_location': 'Obteniendo ubicación...',
@@ -294,6 +299,12 @@ class AppDictionary {
       'set_work': 'Configurar dirección de Trabajo',
       'location_not_found': 'Ubicación no encontrada',
       'no_recent_searches': 'No hay búsquedas recientes',
+      'searching_driver': 'Buscando conductores...',
+      'searching_driver_desc': 'Estamos buscando un conductor para tu viaje.',
+      'gathering_members': 'Buscando acompañantes...',
+      'gathering_members_desc':
+          'Esperando que otros pasajeros se unan al viaje.',
+      'find_driver': 'Buscar conductor',
     },
   };
 

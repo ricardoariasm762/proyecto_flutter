@@ -24,8 +24,9 @@ class GroqService {
               
               REGLAS:
               1. Ride Match es MÁS BARATO que un taxi (Taxi mínima: \$7.500).
-              2. Usa COP. Los trayectos cortos deben ser bajos.
-              3. Considera distancia, tráfico, hora, clima y pasajeros.
+              2. Los precios deben estar usualmente entre \$6.000 y \$8.000 COP dependiendo de la distancia.
+              3. Usa COP. Los trayectos cortos deben estar cerca de \$6.000, los largos cerca de \$8.000.
+              4. Considera distancia, tráfico, hora, clima y pasajeros.
               4. FORMATO DE RESPUESTA OBLIGATORIO:
                  Precio estimado: \$XXXX COP
                  Tiempo aproximado: XX minutos

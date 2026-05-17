@@ -138,14 +138,17 @@ class _CommunityTabState extends State<CommunityTab> {
 
             final group = groups[index - 1];
             final availableSeats = group['available_seats'] as int? ?? 4;
+            final offeredPrice =
+                (group['offered_price'] as num?)?.toDouble() ?? 6000.0;
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
               child: RideCard(
                 ride: group,
                 members: 1,
                 seatsLeft: availableSeats,
-                totalFare: 6000,
-                splitFare: 6000,
+                totalFare: offeredPrice,
+                splitFare: offeredPrice,
                 onJoin: () async {
                   final groupId = (group['id'] ?? '').toString();
                   if (groupId.isEmpty) return;
@@ -374,10 +377,7 @@ class _CommunityTabState extends State<CommunityTab> {
                 const SizedBox(height: 4),
                 Text(
                   desc,
-                  style: TextStyle(
-                    color: color.withOpacity(0.8),
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: color.withOpacity(0.8), fontSize: 13),
                 ),
               ],
             ),
@@ -414,20 +414,14 @@ class _CommunityTabState extends State<CommunityTab> {
             AppDictionary.text(lang, 'today'),
             colorScheme,
           ),
-          Divider(
-            height: 32,
-            color: colorScheme.outline.withOpacity(0.5),
-          ),
+          Divider(height: 32, color: colorScheme.outline.withOpacity(0.5)),
           _buildInfoRow(
             Icons.person_outline,
             AppDictionary.text(lang, 'people'),
             "1/5",
             colorScheme,
           ),
-          Divider(
-            height: 32,
-            color: colorScheme.outline.withOpacity(0.5),
-          ),
+          Divider(height: 32, color: colorScheme.outline.withOpacity(0.5)),
           _buildInfoRow(
             Icons.attach_money_rounded,
             AppDictionary.text(lang, 'estimated_cost'),

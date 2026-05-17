@@ -38,6 +38,12 @@ class HomeController extends ChangeNotifier {
   String? aiRecommendation;
   bool isAiCalculatingPrice = false;
 
+  // Search Flow (inDrive style)
+  bool isSearching = false;
+  bool isGatheringMembers = false;
+  double? offeredPrice;
+  String? currentGroupId;
+
   List<LatLng> routePoints = [];
   int availableSeats = 1;
 
@@ -334,29 +340,30 @@ class HomeController extends ChangeNotifier {
   Future<void> createGroup(BuildContext context, String currentLanguage) async {
     if (destination == null || currentPosition == null) return;
     try {
+      offeredPrice = aiSuggestedPrice ?? 6000;
+      isGatheringMembers = true;
+      notifyListeners();
+
       await _rideService.createGroup(
         originLat: currentPosition!.latitude,
         originLng: currentPosition!.longitude,
         destLat: destination!.latitude,
         destLng: destination!.longitude,
         availableSeats: availableSeats,
+        offeredPrice: offeredPrice,
       );
+
+      final active = await _rideService.getActiveGroup();
+      currentGroupId = active?['id']?.toString();
 
       await NotificationService().showNotification(
         id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-        title: AppDictionary.text(currentLanguage, 'ride_created'),
-        body: AppDictionary.text(currentLanguage, 'ride_created'),
-      );
-
-      setTabIndex(1);
-
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppDictionary.text(currentLanguage, 'ride_created')),
-        ),
+        title: AppDictionary.text(currentLanguage, 'gathering_members'),
+        body: AppDictionary.text(currentLanguage, 'gathering_members_desc'),
       );
     } catch (e) {
+      isGatheringMembers = false;
+      notifyListeners();
       if (!context.mounted) return;
       final isAuth = e.toString().contains('auth-required');
       final msg = isAuth
@@ -365,6 +372,55 @@ class HomeController extends ChangeNotifier {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg), backgroundColor: Colors.redAccent),
       );
+    }
+  }
+
+  Future<void> startDriverSearch(
+    BuildContext context,
+    String currentLanguage,
+  ) async {
+    if (currentGroupId == null) return;
+    try {
+      isGatheringMembers = false;
+      isSearching = true;
+      notifyListeners();
+
+      await _rideService.findDriver(currentGroupId!);
+
+      await NotificationService().showNotification(
+        id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title: AppDictionary.text(currentLanguage, 'searching_driver'),
+        body: AppDictionary.text(currentLanguage, 'searching_driver_desc'),
+      );
+    } catch (e) {
+      isSearching = false;
+      isGatheringMembers = true;
+      notifyListeners();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent),
+      );
+    }
+  }
+
+  Future<void> cancelSearch() async {
+    if (currentGroupId != null) {
+      await _rideService.cancelGroup(currentGroupId!);
+    }
+    isSearching = false;
+    isGatheringMembers = false;
+    currentGroupId = null;
+    offeredPrice = null;
+    notifyListeners();
+  }
+
+  Future<void> updateOfferedPrice(double newPrice) async {
+    if (newPrice < 5000) newPrice = 5000; // Mínimo absoluto
+    offeredPrice = newPrice;
+    notifyListeners();
+
+    if (currentGroupId != null) {
+      await _rideService.updateOfferedPrice(currentGroupId!, newPrice);
     }
   }
 }
