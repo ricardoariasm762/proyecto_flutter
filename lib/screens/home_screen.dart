@@ -172,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
               pages[controller.currentTabIndex],
               if (controller.isSearching ||
                   controller.isGatheringMembers ||
+                  controller.isPickingUp ||
                   controller.isOnTrip ||
                   controller.isPaymentPending)
                 _buildActiveSearchOverlay(
@@ -194,6 +195,7 @@ class _HomeScreenState extends State<HomeScreen> {
           bottomNavigationBar:
               (controller.isSearching ||
                   controller.isGatheringMembers ||
+                  controller.isPickingUp ||
                   controller.isOnTrip ||
                   controller.isPaymentPending)
               ? null
@@ -282,8 +284,9 @@ class _HomeScreenState extends State<HomeScreen> {
     ColorScheme colorScheme,
     bool isDark,
   ) {
-    if (controller.isOnTrip) {
-      // Modo Viaje: Panel inferior pequeño para ver el mapa
+    if (controller.isOnTrip || controller.isPickingUp) {
+      // Modo Viaje o Recogida: Panel inferior pequeño para ver el mapa
+      final isPickingUp = controller.isPickingUp;
       return Align(
         alignment: Alignment.bottomCenter,
         child: Container(
@@ -308,29 +311,40 @@ class _HomeScreenState extends State<HomeScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: isPickingUp
+                          ? Colors.orange.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
-                      Icons.directions_car_rounded,
-                      color: Colors.green,
+                    child: Icon(
+                      isPickingUp
+                          ? Icons.hail_rounded
+                          : Icons.directions_car_rounded,
+                      color: isPickingUp ? Colors.orange : Colors.green,
                     ),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Viaje en curso',
-                          style: TextStyle(
+                          isPickingUp
+                              ? 'Conductor en camino'
+                              : 'Viaje en curso',
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
                         Text(
-                          'El conductor se dirige al destino',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          isPickingUp
+                              ? 'Encuéntrate con tu conductor'
+                              : 'El conductor se dirige al destino',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
@@ -345,6 +359,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+              if (controller.userRole == 'driver' && isPickingUp) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Cambiar a modo 'active' al recoger
+                      if (controller.currentGroupId != null) {
+                        Supabase.instance.client
+                            .from('groups')
+                            .update({'status': 'active'})
+                            .eq('id', controller.currentGroupId!)
+                            .then((_) {});
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('YA RECOGÍ AL USUARIO'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,

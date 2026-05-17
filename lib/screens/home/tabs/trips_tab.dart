@@ -203,6 +203,31 @@ class TripsTab extends StatelessWidget {
                         size: 40,
                       ),
                     ),
+                  if ((controller.isPickingUp || controller.isOnTrip) &&
+                      controller.driverPosition != null)
+                    Marker(
+                      point: controller.driverPosition!,
+                      width: 45,
+                      height: 45,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.directions_car_filled_rounded,
+                          color: Colors.green,
+                          size: 30,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],

@@ -261,6 +261,27 @@ class RideService {
     });
   }
 
+  Future<void> updateLocation(double lat, double lng) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return;
+
+    // Si es conductor, actualiza su tabla
+    await _client.from('active_drivers').upsert({
+      'id': user.id,
+      'last_lat': lat,
+      'last_lng': lng,
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Stream<Map<String, dynamic>?> getDriverLocationStream(String driverId) {
+    return _client
+        .from('active_drivers')
+        .stream(primaryKey: ['id'])
+        .eq('id', driverId)
+        .map((event) => event.isNotEmpty ? event.first : null);
+  }
+
   Future<void> goOffline() async {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return;

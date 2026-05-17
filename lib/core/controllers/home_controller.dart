@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:osrm/osrm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -43,9 +44,11 @@ class HomeController extends ChangeNotifier {
   bool isGatheringMembers = false;
   bool isOnTrip = false;
   bool isPaymentPending = false;
+  bool isPickingUp = false;
   double? offeredPrice;
   String? currentGroupId;
 
+  LatLng? driverPosition;
   Map<String, dynamic>? activeTripData;
 
   List<LatLng> routePoints = [];
@@ -58,6 +61,27 @@ class HomeController extends ChangeNotifier {
     _initRole();
     _loadRecentSearches();
     _listenToActiveTrip();
+    _listenToLocation();
+  }
+
+  void _listenToLocation() {
+    _locationService.getLocationStream().listen(_onLocationChanged);
+  }
+
+  void _onLocationChanged(Position position) {
+    currentPosition = LatLng(position.latitude, position.longitude);
+
+    // Actualizar ubicación en base de datos si está en un viaje o es conductor online
+    if (isOnTrip ||
+        isPickingUp ||
+        (userRole == 'driver' && activeTripData?['is_online'] == true)) {
+      _rideService.updateLocation(position.latitude, position.longitude);
+    }
+
+    if (destination != null && routePoints.isEmpty) {
+      fetchRoute(currentPosition!, destination!);
+    }
+    notifyListeners();
   }
 
   void _listenToActiveTrip() {
@@ -81,21 +105,32 @@ class HomeController extends ChangeNotifier {
           isSearching = false;
           isOnTrip = false;
           isPaymentPending = false;
+          isPickingUp = false;
         } else if (status == 'searching_driver') {
           isGatheringMembers = false;
           isSearching = true;
           isOnTrip = false;
           isPaymentPending = false;
-        } else if (status == 'driver_assigned' || status == 'active') {
+          isPickingUp = false;
+        } else if (status == 'driver_assigned') {
+          isGatheringMembers = false;
+          isSearching = false;
+          isOnTrip = false;
+          isPaymentPending = false;
+          isPickingUp = true;
+          _startDriverLocationListener(trip['driver_id']);
+        } else if (status == 'active') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = true;
           isPaymentPending = false;
+          isPickingUp = false;
         } else if (status == 'completed') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = false;
           isPaymentPending = true;
+          isPickingUp = false;
         }
 
         if (trip['offered_price'] != null) {
@@ -474,6 +509,20 @@ class HomeController extends ChangeNotifier {
     if (currentGroupId != null) {
       await _rideService.updateOfferedPrice(currentGroupId!, newPrice);
     }
+  }
+
+  void _startDriverLocationListener(String driverId) {
+    _rideService.getDriverLocationStream(driverId).listen((data) {
+      if (data != null &&
+          data['last_lat'] != null &&
+          data['last_lng'] != null) {
+        driverPosition = LatLng(
+          (data['last_lat'] as num).toDouble(),
+          (data['last_lng'] as num).toDouble(),
+        );
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> confirmPayment() async {
