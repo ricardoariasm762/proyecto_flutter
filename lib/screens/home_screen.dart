@@ -112,83 +112,257 @@ class _HomeScreenState extends State<HomeScreen> {
         final isMadrid = ThemeController.instance.isHalaMadridMode;
 
         return Scaffold(
-          body: pages[controller.currentTabIndex],
+          appBar: AppBar(
+            title: Text(AppDictionary.text(lang, 'app_title')),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+          ),
+          body: Stack(
+            children: [
+              pages[controller.currentTabIndex],
+              if (controller.isSearching || controller.isGatheringMembers || controller.isOnTrip)
+                _buildActiveSearchOverlay(context, controller, lang, colorScheme, isDark),
+            ],
+          ),
           floatingActionButton: isMadrid
               ? FloatingActionButton(
+                  heroTag: 'madrid_fab',
                   onPressed: () {},
                   backgroundColor: const Color(0xFFFEBE10),
                   child: const Text('⚽', style: TextStyle(fontSize: 24)),
                 )
               : null,
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: isDark ? colorScheme.surface : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
+          bottomNavigationBar: (controller.isSearching || controller.isGatheringMembers || controller.isOnTrip)
+              ? null
+              : Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? colorScheme.surface : Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: NavigationBar(
+                    height: 65,
+                    backgroundColor: isDark ? colorScheme.surface : Colors.white,
+                    elevation: 0,
+                    indicatorColor: colorScheme.primary.withOpacity(0.1),
+                    selectedIndex: controller.currentTabIndex,
+                    onDestinationSelected: (index) => controller.setTabIndex(index),
+                    destinations: [
+                      NavigationDestination(
+                        icon: Icon(
+                          Icons.map_outlined,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        selectedIcon: Icon(
+                          Icons.map_rounded,
+                          color: colorScheme.primary,
+                        ),
+                        label: isMadrid ? 'Copa' : AppDictionary.text(lang, 'trips'),
+                      ),
+                      NavigationDestination(
+                        icon: Icon(
+                          isMadrid
+                              ? Icons.emoji_events_outlined
+                              : Icons.groups_2_outlined,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        selectedIcon: Icon(
+                          isMadrid
+                              ? Icons.emoji_events_rounded
+                              : Icons.groups_2_rounded,
+                          color: colorScheme.primary,
+                        ),
+                        label: isMadrid
+                            ? 'Afición'
+                            : AppDictionary.text(lang, 'community'),
+                      ),
+                      NavigationDestination(
+                        icon: Icon(
+                          isMadrid
+                              ? Icons.workspace_premium_outlined
+                              : Icons.person_outline_rounded,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        selectedIcon: Icon(
+                          isMadrid
+                              ? Icons.workspace_premium_rounded
+                              : Icons.person_rounded,
+                          color: colorScheme.primary,
+                        ),
+                        label: isMadrid
+                            ? 'Socio'
+                            : AppDictionary.text(lang, 'profile'),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            child: NavigationBar(
-              height: 65,
-              backgroundColor: isDark ? colorScheme.surface : Colors.white,
-              elevation: 0,
-              indicatorColor: colorScheme.primary.withOpacity(0.1),
-              selectedIndex: controller.currentTabIndex,
-              onDestinationSelected: (index) => controller.setTabIndex(index),
-              destinations: [
-                NavigationDestination(
-                  icon: Icon(
-                    Icons.map_outlined,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  selectedIcon: Icon(
-                    Icons.map_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  label: isMadrid ? 'Copa' : AppDictionary.text(lang, 'trips'),
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    isMadrid
-                        ? Icons.emoji_events_outlined
-                        : Icons.groups_2_outlined,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  selectedIcon: Icon(
-                    isMadrid
-                        ? Icons.emoji_events_rounded
-                        : Icons.groups_2_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  label: isMadrid
-                      ? 'Afición'
-                      : AppDictionary.text(lang, 'community'),
-                ),
-                NavigationDestination(
-                  icon: Icon(
-                    isMadrid
-                        ? Icons.workspace_premium_outlined
-                        : Icons.person_outline_rounded,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  selectedIcon: Icon(
-                    isMadrid
-                        ? Icons.workspace_premium_rounded
-                        : Icons.person_rounded,
-                    color: colorScheme.primary,
-                  ),
-                  label: isMadrid
-                      ? 'Socio'
-                      : AppDictionary.text(lang, 'profile'),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
   }
+
+  Widget _buildActiveSearchOverlay(
+    BuildContext context,
+    HomeController controller,
+    String lang,
+    ColorScheme colorScheme,
+    bool isDark,
+  ) {
+    String statusTitle = 'Buscando acompañantes...';
+    String statusSubtitle = 'Esperando que otros se unan a tu viaje';
+    IconData statusIcon = Icons.groups_rounded;
+    Color statusColor = Colors.orange;
+
+    if (controller.isSearching) {
+      statusTitle = 'Buscando conductor...';
+      statusSubtitle = 'Estamos enviando tu oferta a conductores cercanos';
+      statusIcon = Icons.search_rounded;
+      statusColor = colorScheme.primary;
+    } else if (controller.isOnTrip) {
+      statusTitle = 'Viaje en curso';
+      statusSubtitle = 'El conductor está en camino o ya están viajando';
+      statusIcon = Icons.directions_car_rounded;
+      statusColor = Colors.green;
+    }
+
+    return Container(
+      color: Colors.black.withOpacity(0.4),
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isDark ? colorScheme.surface : Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: (controller.isSearching) 
+                  ? const CircularProgressIndicator()
+                  : Icon(statusIcon, size: 48, color: statusColor),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                statusTitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                statusSubtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Oferta actual', style: TextStyle(fontSize: 12)),
+                        Text(
+                          '\$${controller.offeredPrice?.toInt() ?? 0}',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (controller.isSearching)
+                      Row(
+                        children: [
+                          _buildQuickPriceBtn('-500', () => controller.updateOfferedPrice((controller.offeredPrice ?? 0) - 500), colorScheme),
+                          const SizedBox(width: 8),
+                          _buildQuickPriceBtn('+500', () => controller.updateOfferedPrice((controller.offeredPrice ?? 0) + 500), colorScheme),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+              if (controller.isGatheringMembers)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () => controller.startDriverSearch(context, lang),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                    child: const Text('BUSCAR CONDUCTOR AHORA', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: OutlinedButton(
+                  onPressed: () => controller.cancelSearch(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text('CANCELAR', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickPriceBtn(String label, VoidCallback onTap, ColorScheme colorScheme) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.primary,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ),
+    );
 }

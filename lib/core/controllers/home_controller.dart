@@ -41,8 +41,11 @@ class HomeController extends ChangeNotifier {
   // Search Flow (inDrive style)
   bool isSearching = false;
   bool isGatheringMembers = false;
+  bool isOnTrip = false;
   double? offeredPrice;
   String? currentGroupId;
+
+  Map<String, dynamic>? activeTripData;
 
   List<LatLng> routePoints = [];
   int availableSeats = 1;
@@ -53,6 +56,41 @@ class HomeController extends ChangeNotifier {
   HomeController(this._locationService, this._rideService) {
     _initRole();
     _loadRecentSearches();
+    _listenToActiveTrip();
+  }
+
+  void _listenToActiveTrip() {
+    _rideService.getActiveGroupStream().listen((trip) {
+      activeTripData = trip;
+      if (trip == null) {
+        isSearching = false;
+        isGatheringMembers = false;
+        isOnTrip = false;
+        currentGroupId = null;
+      } else {
+        currentGroupId = trip['id']?.toString();
+        final status = trip['status']?.toString() ?? '';
+
+        if (status == 'gathering') {
+          isGatheringMembers = true;
+          isSearching = false;
+          isOnTrip = false;
+        } else if (status == 'searching_driver') {
+          isGatheringMembers = false;
+          isSearching = true;
+          isOnTrip = false;
+        } else if (status == 'driver_assigned' || status == 'active') {
+          isGatheringMembers = false;
+          isSearching = false;
+          isOnTrip = true;
+        }
+
+        if (trip['offered_price'] != null) {
+          offeredPrice = (trip['offered_price'] as num).toDouble();
+        }
+      }
+      notifyListeners();
+    });
   }
 
   Future<void> _loadRecentSearches() async {

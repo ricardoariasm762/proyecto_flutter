@@ -77,6 +77,50 @@ class TripsTab extends StatelessWidget {
     controller.setDestination(point, address: search['address']);
   }
 
+  Future<void> _handleEditPrice(
+    BuildContext context,
+    HomeController controller,
+    String lang,
+  ) async {
+    final priceController = TextEditingController(
+      text: (controller.offeredPrice ?? controller.aiSuggestedPrice ?? 0)
+          .round()
+          .toString(),
+    );
+    final double? newPrice = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Precio'),
+        content: TextField(
+          controller: priceController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            prefixText: '\$ ',
+            hintText: 'Ej: 7000',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppDictionary.text(lang, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () {
+              final val = double.tryParse(priceController.text);
+              Navigator.pop(context, val);
+            },
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (newPrice != null) {
+      controller.updateOfferedPrice(newPrice);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<HomeController>();
@@ -324,143 +368,6 @@ class TripsTab extends StatelessWidget {
     ColorScheme colorScheme,
     bool isDark,
   ) {
-    if (controller.isGatheringMembers || controller.isSearching) {
-      return Positioned(
-        left: 0,
-        right: 0,
-        bottom: 0,
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDark ? colorScheme.surface : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                blurRadius: 10,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              if (controller.isSearching)
-                const CircularProgressIndicator()
-              else
-                Icon(
-                  Icons.groups_rounded,
-                  size: 48,
-                  color: colorScheme.primary,
-                ),
-              const SizedBox(height: 24),
-              Text(
-                controller.isSearching
-                    ? AppDictionary.text(lang, 'searching_driver')
-                    : AppDictionary.text(lang, 'gathering_members'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Oferta: \$${controller.offeredPrice?.toInt() ?? 0}',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (controller.isSearching) ...[
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildPriceButton(
-                      label: '-500',
-                      onTap: () => controller.updateOfferedPrice(
-                        (controller.offeredPrice ?? 0) - 500,
-                      ),
-                      colorScheme: colorScheme,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildPriceButton(
-                      label: '+500',
-                      onTap: () => controller.updateOfferedPrice(
-                        (controller.offeredPrice ?? 0) + 500,
-                      ),
-                      colorScheme: colorScheme,
-                    ),
-                    const SizedBox(width: 16),
-                    _buildPriceButton(
-                      label: '+1000',
-                      onTap: () => controller.updateOfferedPrice(
-                        (controller.offeredPrice ?? 0) + 1000,
-                      ),
-                      colorScheme: colorScheme,
-                    ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 32),
-              Column(
-                children: [
-                  if (controller.isGatheringMembers)
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: () =>
-                            controller.startDriverSearch(context, lang),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: colorScheme.primary,
-                          foregroundColor: colorScheme.onPrimary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: Text(
-                          AppDictionary.text(lang, 'find_driver'),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (controller.isGatheringMembers) const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      onPressed: () => controller.cancelSearch(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: colorScheme.error,
-                        side: BorderSide(color: colorScheme.error),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        AppDictionary.text(lang, 'cancel'),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     if (controller.destination == null) {
       return Positioned(
         left: 0,
@@ -568,6 +475,9 @@ class TripsTab extends StatelessWidget {
                 ),
                 Text(
                   () {
+                    if (controller.offeredPrice != null) {
+                      return '\$${controller.offeredPrice!.round()}';
+                    }
                     if (controller.aiSuggestedPrice != null &&
                         controller.aiSuggestedPrice!.isFinite) {
                       return '\$${controller.aiSuggestedPrice!.round()}';
@@ -583,6 +493,11 @@ class TripsTab extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
                   ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_rounded, size: 18),
+                  onPressed: () => _handleEditPrice(context, controller, lang),
+                  color: colorScheme.primary,
                 ),
               ],
             ),

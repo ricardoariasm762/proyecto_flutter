@@ -142,6 +142,33 @@ class RideService {
     return null;
   }
 
+  Stream<Map<String, dynamic>?> getActiveGroupStream() {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) return Stream.value(null);
+
+    return _client.from('groups').stream(primaryKey: ['id']).map((rows) {
+      // Check if creator
+      final creatorGroup = rows.cast<Map<String, dynamic>?>().firstWhere(
+        (r) =>
+            r!['creator_id'] == user.id &&
+            [
+              'gathering',
+              'searching_driver',
+              'driver_assigned',
+              'active',
+            ].contains(r['status']),
+        orElse: () => null,
+      );
+
+      if (creatorGroup != null) return creatorGroup;
+
+      // Note: Members check would require a separate stream or a more complex query
+      // because .stream() only works on a single table.
+      // For now, we'll focus on the creator's real-time experience.
+      return null;
+    });
+  }
+
   void listenForGroupRequests(
     void Function(Map<String, dynamic> requestData) onNewRequest,
   ) {
