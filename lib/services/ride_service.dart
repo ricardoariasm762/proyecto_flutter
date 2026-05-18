@@ -47,11 +47,24 @@ class RideService {
         .eq('id', groupId);
   }
 
-  Future<void> cancelGroup(String groupId) async {
-    await _client
-        .from('groups')
-        .update({'status': 'cancelled'})
-        .eq('id', groupId);
+  Future<void> cancelGroup(String groupId, {String? reason}) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+
+    final payload = <String, dynamic>{
+      'status': 'cancelled',
+      if (reason != null) 'cancel_reason': reason,
+      if (user != null) 'cancelled_by': user.id,
+      'cancelled_at': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await _client.from('groups').update(payload).eq('id', groupId);
+    } catch (_) {
+      await _client
+          .from('groups')
+          .update({'status': 'cancelled'})
+          .eq('id', groupId);
+    }
   }
 
   Future<void> completeGroup(String groupId) async {
@@ -59,6 +72,42 @@ class RideService {
         .from('groups')
         .update({'status': 'completed'})
         .eq('id', groupId);
+  }
+
+  Future<void> markPickedUp(String groupId) async {
+    await _client.from('groups').update({'status': 'active'}).eq('id', groupId);
+  }
+
+  Future<void> markArrived(String groupId) async {
+    await _client
+        .from('groups')
+        .update({'status': 'payment_pending'})
+        .eq('id', groupId);
+  }
+
+  Future<void> confirmPassengerPaid(String groupId) async {
+    await _client
+        .from('groups')
+        .update({'status': 'payment_confirmed'})
+        .eq('id', groupId);
+  }
+
+  Future<void> completeAfterPayment(String groupId) async {
+    final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
+    if (user == null) throw Exception('auth-required');
+
+    final group = await _client
+        .from('groups')
+        .select('status, driver_id')
+        .eq('id', groupId)
+        .maybeSingle();
+
+    final status = group?['status']?.toString();
+    final driverId = group?['driver_id']?.toString();
+    if (driverId != user.id) throw Exception('not-driver');
+    if (status != 'payment_confirmed') throw Exception('payment-not-confirmed');
+
+    await completeGroup(groupId);
   }
 
   Stream<List<Map<String, dynamic>>> getGatheringGroupsStreamExcludingUser({
@@ -120,12 +169,32 @@ class RideService {
           'gathering',
           'searching_driver',
           'driver_assigned',
+          'active',
+          'payment_pending',
+          'payment_confirmed',
         ])
         .order('created_at', ascending: false)
         .limit(1)
         .maybeSingle();
 
     if (creatorGroup != null) return creatorGroup;
+
+    // Is Driver?
+    final driverGroup = await _client
+        .from('groups')
+        .select()
+        .eq('driver_id', user.id)
+        .filter('status', 'in', [
+          'driver_assigned',
+          'active',
+          'payment_pending',
+          'payment_confirmed',
+        ])
+        .order('created_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (driverGroup != null) return driverGroup;
 
     // Is Member?
     final request = await _client
@@ -143,7 +212,16 @@ class RideService {
           .select()
           .eq('id', request['group_id'])
           .maybeSingle();
-      return group;
+      final status = group?['status']?.toString() ?? '';
+      const allowed = {
+        'gathering',
+        'searching_driver',
+        'driver_assigned',
+        'active',
+        'payment_pending',
+        'payment_confirmed',
+      };
+      return allowed.contains(status) ? group : null;
     }
 
     return null;
@@ -153,26 +231,70 @@ class RideService {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return Stream.value(null);
 
-    return _client.from('groups').stream(primaryKey: ['id']).map((rows) {
-      // Check if creator
-      final creatorGroup = rows.cast<Map<String, dynamic>?>().firstWhere(
-        (r) =>
-            r!['creator_id'] == user.id &&
-            [
-              'gathering',
-              'searching_driver',
-              'driver_assigned',
-              'active',
-            ].contains(r['status']),
-        orElse: () => null,
+    return Stream<Map<String, dynamic>?>.multi((listener) {
+      String? lastGroupId;
+      bool emitting = false;
+
+      Future<void> emitLatest() async {
+        if (emitting) return;
+        emitting = true;
+        try {
+          final latest = await getActiveGroup();
+          lastGroupId = (latest?['id'] ?? '').toString();
+          listener.add(latest);
+        } finally {
+          emitting = false;
+        }
+      }
+
+      final groupsChannel = _client.channel(
+        'active_groups_${user.id}_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      final membersChannel = _client.channel(
+        'active_members_${user.id}_${DateTime.now().millisecondsSinceEpoch}',
       );
 
-      if (creatorGroup != null) return creatorGroup;
+      groupsChannel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'groups',
+            callback: (payload) {
+              final rec = payload.newRecord;
+              final id = (rec['id'] ?? '').toString();
+              final creatorId = (rec['creator_id'] ?? '').toString();
+              final driverId = (rec['driver_id'] ?? '').toString();
+              if (id == lastGroupId ||
+                  creatorId == user.id ||
+                  driverId == user.id) {
+                emitLatest();
+              }
+            },
+          )
+          .subscribe();
 
-      // Note: Members check would require a separate stream or a more complex query
-      // because .stream() only works on a single table.
-      // For now, we'll focus on the creator's real-time experience.
-      return null;
+      membersChannel
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'group_members',
+            callback: (payload) {
+              final rec = payload.newRecord;
+              final groupId = (rec['group_id'] ?? '').toString();
+              final userId = (rec['user_id'] ?? '').toString();
+              if (userId == user.id || groupId == lastGroupId) {
+                emitLatest();
+              }
+            },
+          )
+          .subscribe();
+
+      emitLatest();
+
+      listener.onCancel = () {
+        groupsChannel.unsubscribe();
+        membersChannel.unsubscribe();
+      };
     });
   }
 
@@ -220,6 +342,32 @@ class RideService {
         .from('group_members')
         .update({'status': 'rejected'})
         .eq('id', membershipId);
+  }
+
+  Stream<List<Map<String, dynamic>>> getGroupMembersStream({
+    required String groupId,
+  }) {
+    return _client
+        .from('group_members')
+        .stream(primaryKey: ['id'])
+        .eq('group_id', groupId)
+        .order('created_at', ascending: true);
+  }
+
+  Stream<int> getPassengerCountStream({required String groupId}) {
+    return getGroupMembersStream(groupId: groupId).map((rows) {
+      final accepted = rows.where((r) => (r['status'] ?? '') == 'accepted');
+      return 1 + accepted.length;
+    });
+  }
+
+  Future<int> getPassengerCount({required String groupId}) async {
+    final rows = await _client
+        .from('group_members')
+        .select('id,status')
+        .eq('group_id', groupId);
+    final accepted = rows.where((r) => (r['status'] ?? '') == 'accepted');
+    return 1 + accepted.length;
   }
 
   // ==========================================

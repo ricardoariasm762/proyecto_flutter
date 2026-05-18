@@ -1,4 +1,3 @@
-import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -319,12 +318,161 @@ class _CommunityTabState extends State<CommunityTab> {
                 ),
               ),
               const SizedBox(height: 16),
-              RideCard(
-                ride: activeGroup,
-                members: 1,
-                seatsLeft: availableSeats,
-                totalFare: offeredPrice,
-                splitFare: offeredPrice,
+              StreamBuilder<int>(
+                stream: _rideService.getPassengerCountStream(groupId: groupId),
+                builder: (context, snap) {
+                  final members = snap.data ?? 1;
+                  final split = members > 0
+                      ? (offeredPrice / members)
+                      : offeredPrice;
+                  return RideCard(
+                    ride: activeGroup,
+                    members: members,
+                    seatsLeft: availableSeats,
+                    totalFare: offeredPrice,
+                    splitFare: split,
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: _rideService.getGroupMembersStream(groupId: groupId),
+                builder: (context, membersSnap) {
+                  final rows = membersSnap.data ?? const [];
+                  final pending = rows
+                      .where((r) => (r['status'] ?? '').toString() == 'pending')
+                      .toList(growable: false);
+                  final meId =
+                      Supabase.instance.client.auth.currentUser?.id ?? '';
+                  final myRow = rows.cast<Map<String, dynamic>?>().firstWhere(
+                    (r) => (r?['user_id'] ?? '').toString() == meId,
+                    orElse: () => null,
+                  );
+                  final myStatus = (myRow?['status'] ?? '').toString();
+
+                  if (!isCreator) {
+                    if (myStatus.isEmpty) return const SizedBox.shrink();
+                    final label = myStatus == 'accepted'
+                        ? (lang == 'es'
+                              ? 'Tu solicitud fue aceptada'
+                              : 'Your request was accepted')
+                        : (lang == 'es'
+                              ? 'Esperando aprobación del líder'
+                              : 'Waiting leader approval');
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? colorScheme.surfaceVariant
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.outline.withOpacity(0.1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            myStatus == 'accepted'
+                                ? Icons.verified_rounded
+                                : Icons.hourglass_top_rounded,
+                            color: myStatus == 'accepted'
+                                ? Colors.green
+                                : Colors.orange,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: TextStyle(color: colorScheme.onSurface),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  if (status != 'gathering' || pending.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lang == 'es'
+                            ? 'Solicitudes para unirse'
+                            : 'Join requests',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ...pending.map((r) {
+                        final membershipId = (r['id'] ?? '').toString();
+                        final userId = (r['user_id'] ?? '').toString();
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? colorScheme.surfaceVariant
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: colorScheme.outline.withOpacity(0.1),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.person_outline_rounded),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  userId,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                onPressed: membershipId.isEmpty
+                                    ? null
+                                    : () async {
+                                        await _rideService.acceptGroupRequest(
+                                          membershipId: membershipId,
+                                        );
+                                      },
+                                icon: const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.green,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: membershipId.isEmpty
+                                    ? null
+                                    : () async {
+                                        await _rideService.rejectGroupRequest(
+                                          membershipId: membershipId,
+                                        );
+                                      },
+                                icon: const Icon(
+                                  Icons.cancel_rounded,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 32),
               Text(
@@ -367,7 +515,10 @@ class _CommunityTabState extends State<CommunityTab> {
                 title: 'Cancelar Viaje',
                 subtitle: 'Eliminar esta petición de viaje',
                 color: colorScheme.error,
-                onTap: () => context.read<HomeController>().cancelSearch(),
+                onTap: () => context.read<HomeController>().cancelCurrentTrip(
+                  context,
+                  lang,
+                ),
               ),
             ],
           ),

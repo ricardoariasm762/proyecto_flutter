@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import '../core/controllers/home_controller.dart';
 import '../core/localization/language_controller.dart';
@@ -105,8 +104,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDriver = controller.userRole == 'driver';
 
     final pages = isDriver
-        ? [const CommunityTab(), const ProfileTab()]
+        ? (controller.isPickingUp ||
+                  controller.isOnTrip ||
+                  controller.isPaymentPending
+              ? [const TripsTab(), const CommunityTab(), const ProfileTab()]
+              : [const CommunityTab(), const ProfileTab()])
         : [const TripsTab(), const CommunityTab(), const ProfileTab()];
+    final safeTabIndex = controller.currentTabIndex < pages.length
+        ? controller.currentTabIndex
+        : 0;
 
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -169,7 +175,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           body: Stack(
             children: [
-              pages[controller.currentTabIndex],
+              pages[safeTabIndex],
               if (controller.isSearching ||
                   controller.isGatheringMembers ||
                   controller.isPickingUp ||
@@ -217,7 +223,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         : Colors.white,
                     elevation: 0,
                     indicatorColor: colorScheme.primary.withOpacity(0.1),
-                    selectedIndex: controller.currentTabIndex,
+                    selectedIndex: safeTabIndex,
                     onDestinationSelected: (index) =>
                         controller.setTabIndex(index),
                     destinations: [
@@ -287,6 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (controller.isOnTrip || controller.isPickingUp) {
       // Modo Viaje o Recogida: Panel inferior pequeño para ver el mapa
       final isPickingUp = controller.isPickingUp;
+      final isDriver = controller.userRole == 'driver';
       return Align(
         alignment: Alignment.bottomCenter,
         child: Container(
@@ -330,7 +337,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           isPickingUp
-                              ? 'Conductor en camino'
+                              ? (isDriver
+                                    ? 'Yendo a recoger'
+                                    : 'Conductor en camino')
                               : 'Viaje en curso',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
@@ -339,8 +348,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         Text(
                           isPickingUp
-                              ? 'Encuéntrate con tu conductor'
-                              : 'El conductor se dirige al destino',
+                              ? (isDriver
+                                    ? 'Dirígete al punto de recogida'
+                                    : 'Encuéntrate con tu conductor')
+                              : (isDriver
+                                    ? 'Dirígete al destino'
+                                    : 'El conductor se dirige al destino'),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -350,7 +363,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   Text(
-                    '\$${controller.offeredPrice?.toInt() ?? 0}',
+                    controller.activePassengerCount > 1
+                        ? '\$${controller.perPersonFare.round()} c/u'
+                        : '\$${(controller.offeredPrice ?? 0).round()}',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -359,21 +374,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
-              if (controller.userRole == 'driver' && isPickingUp) ...[
+              if (isDriver && isPickingUp) ...[
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // Cambiar a modo 'active' al recoger
-                      if (controller.currentGroupId != null) {
-                        Supabase.instance.client
-                            .from('groups')
-                            .update({'status': 'active'})
-                            .eq('id', controller.currentGroupId!)
-                            .then((_) {});
-                      }
+                    onPressed: () async {
+                      final groupId = controller.currentGroupId;
+                      if (groupId == null) return;
+                      await context.read<RideService>().markPickedUp(groupId);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
@@ -383,18 +393,42 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              if (isDriver && controller.isOnTrip) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final groupId = controller.currentGroupId;
+                      if (groupId == null) return;
+                      await context.read<RideService>().markArrived(groupId);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('LLEGAMOS AL DESTINO'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
-                child: TextButton(
-                  onPressed: () {
-                    if (controller.currentGroupId != null) {
-                      context.read<RideService>().completeGroup(
-                        controller.currentGroupId!,
-                      );
-                    }
-                  },
-                  child: const Text('Simular Llegada (Test)'),
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: () => controller.cancelCurrentTrip(context, lang),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.error,
+                    side: BorderSide(color: colorScheme.error),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    lang == 'es' ? 'CANCELAR VIAJE' : 'CANCEL TRIP',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],
@@ -419,12 +453,45 @@ class _HomeScreenState extends State<HomeScreen> {
       primaryButtonLabel = ''; // No hay botón primario en búsqueda
       onPrimaryTap = null;
     } else if (controller.isPaymentPending) {
-      statusTitle = '¡Has llegado!';
-      statusSubtitle = 'Por favor confirma el pago al conductor';
-      statusIcon = Icons.check_circle_rounded;
+      final isDriver = controller.userRole == 'driver';
+      final status = controller.tripStatus ?? '';
+      final amount = controller.activePassengerCount > 1
+          ? controller.perPersonFare.round()
+          : (controller.offeredPrice ?? 0).round();
+
+      statusTitle = 'Cobro del viaje';
+      statusIcon = Icons.payments_rounded;
       statusColor = Colors.green;
-      primaryButtonLabel = 'CONFIRMAR PAGO';
-      onPrimaryTap = () => controller.confirmPayment();
+
+      if (!isDriver && status == 'payment_pending') {
+        statusSubtitle = 'Paga al conductor la cantidad de \$$amount';
+        primaryButtonLabel = 'YA PAGUÉ';
+        onPrimaryTap = () async {
+          final groupId = controller.currentGroupId;
+          if (groupId == null) return;
+          await context.read<RideService>().confirmPassengerPaid(groupId);
+        };
+      } else if (!isDriver && status == 'payment_confirmed') {
+        statusSubtitle = 'Pago reportado. Esperando confirmación del conductor';
+        primaryButtonLabel = '';
+        onPrimaryTap = null;
+      } else if (isDriver && status == 'payment_pending') {
+        statusSubtitle = 'Esperando que el usuario pague \$$amount';
+        primaryButtonLabel = '';
+        onPrimaryTap = null;
+      } else if (isDriver && status == 'payment_confirmed') {
+        statusSubtitle = 'El usuario reportó el pago. Confirma para terminar';
+        primaryButtonLabel = 'CONFIRMAR PAGO Y TERMINAR';
+        onPrimaryTap = () async {
+          final groupId = controller.currentGroupId;
+          if (groupId == null) return;
+          await context.read<RideService>().completeAfterPayment(groupId);
+        };
+      } else {
+        statusSubtitle = 'Procesando...';
+        primaryButtonLabel = '';
+        onPrimaryTap = null;
+      }
     }
 
     return Container(
@@ -489,12 +556,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Total a pagar',
-                          style: TextStyle(fontSize: 12),
+                        Text(
+                          controller.activePassengerCount > 1
+                              ? 'Total por persona'
+                              : 'Total a pagar',
+                          style: const TextStyle(fontSize: 12),
                         ),
                         Text(
-                          '\$${controller.offeredPrice?.toInt() ?? 0}',
+                          '\$${controller.activePassengerCount > 1 ? controller.perPersonFare.round() : (controller.offeredPrice ?? 0).round()}',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -552,7 +621,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   height: 56,
                   child: OutlinedButton(
-                    onPressed: () => controller.cancelSearch(),
+                    onPressed: () =>
+                        controller.cancelCurrentTrip(context, lang),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: colorScheme.error,
                       side: BorderSide(color: colorScheme.error),
@@ -560,9 +630,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'CANCELAR',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    child: Text(
+                      lang == 'es' ? 'CANCELAR VIAJE' : 'CANCEL TRIP',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

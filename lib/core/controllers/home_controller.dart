@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
@@ -52,10 +53,26 @@ class HomeController extends ChangeNotifier {
   Map<String, dynamic>? activeTripData;
 
   List<LatLng> routePoints = [];
+  List<LatLng> pickupRoutePoints = [];
+  num? pickupRouteDistance;
+  num? pickupRouteDuration;
+  LatLng? _lastPickupRouteStart;
+  DateTime? _lastPickupRouteTime;
+  List<LatLng> tripRoutePoints = [];
+  num? tripRouteDistance;
+  num? tripRouteDuration;
+  LatLng? _lastTripRouteStart;
+  DateTime? _lastTripRouteTime;
   int availableSeats = 1;
 
   // Historial de búsquedas recientes
   List<Map<String, dynamic>> recentSearches = [];
+
+  StreamSubscription<Map<String, dynamic>?>? _driverLocationSub;
+  String? _driverLocationDriverId;
+  StreamSubscription<int>? _passengerCountSub;
+  String? _passengerCountGroupId;
+  int activePassengerCount = 1;
 
   HomeController(this._locationService, this._rideService) {
     _initRole();
@@ -81,6 +98,12 @@ class HomeController extends ChangeNotifier {
     if (destination != null && routePoints.isEmpty) {
       fetchRoute(currentPosition!, destination!);
     }
+    if (isPickingUp) {
+      _maybeUpdatePickupRoute();
+    }
+    if (isOnTrip) {
+      _maybeUpdateTripRoute();
+    }
     notifyListeners();
   }
 
@@ -95,10 +118,26 @@ class HomeController extends ChangeNotifier {
         isGatheringMembers = false;
         isOnTrip = false;
         isPaymentPending = false;
+        isPickingUp = false;
         currentGroupId = null;
+        _stopPassengerCountListener();
+        _stopDriverLocationListener();
+        pickupRoutePoints = [];
+        pickupRouteDistance = null;
+        pickupRouteDuration = null;
+        _lastPickupRouteStart = null;
+        _lastPickupRouteTime = null;
+        tripRoutePoints = [];
+        tripRouteDistance = null;
+        tripRouteDuration = null;
+        _lastTripRouteStart = null;
+        _lastTripRouteTime = null;
+        activePassengerCount = 1;
       } else {
         currentGroupId = trip['id']?.toString();
+        _startPassengerCountListener(currentGroupId);
         final status = trip['status']?.toString() ?? '';
+        final driverId = trip['driver_id']?.toString();
 
         if (status == 'gathering') {
           isGatheringMembers = true;
@@ -106,31 +145,63 @@ class HomeController extends ChangeNotifier {
           isOnTrip = false;
           isPaymentPending = false;
           isPickingUp = false;
+          pickupRoutePoints = [];
+          tripRoutePoints = [];
+          _stopDriverLocationListener();
         } else if (status == 'searching_driver') {
           isGatheringMembers = false;
           isSearching = true;
           isOnTrip = false;
           isPaymentPending = false;
           isPickingUp = false;
+          pickupRoutePoints = [];
+          tripRoutePoints = [];
+          _stopDriverLocationListener();
         } else if (status == 'driver_assigned') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = false;
           isPaymentPending = false;
           isPickingUp = true;
-          _startDriverLocationListener(trip['driver_id']);
+          currentTabIndex = 0;
+          if (driverId != null && driverId.isNotEmpty) {
+            _startDriverLocationListener(driverId);
+          }
+          _maybeUpdatePickupRoute(force: true);
         } else if (status == 'active') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = true;
           isPaymentPending = false;
           isPickingUp = false;
-        } else if (status == 'completed') {
+          currentTabIndex = 0;
+          pickupRoutePoints = [];
+          if (driverId != null && driverId.isNotEmpty) {
+            _startDriverLocationListener(driverId);
+          }
+          _maybeUpdateTripRoute(force: true);
+        } else if (status == 'payment_pending' ||
+            status == 'payment_confirmed') {
           isGatheringMembers = false;
           isSearching = false;
           isOnTrip = false;
           isPaymentPending = true;
           isPickingUp = false;
+          currentTabIndex = 0;
+          pickupRoutePoints = [];
+          tripRoutePoints = [];
+          if (driverId != null && driverId.isNotEmpty) {
+            _startDriverLocationListener(driverId);
+          }
+        } else if (status == 'completed') {
+          isGatheringMembers = false;
+          isSearching = false;
+          isOnTrip = false;
+          isPaymentPending = false;
+          isPickingUp = false;
+          pickupRoutePoints = [];
+          tripRoutePoints = [];
+          _stopDriverLocationListener();
         }
 
         if (trip['offered_price'] != null) {
@@ -139,6 +210,32 @@ class HomeController extends ChangeNotifier {
       }
       notifyListeners();
     });
+  }
+
+  void _stopPassengerCountListener() {
+    _passengerCountSub?.cancel();
+    _passengerCountSub = null;
+    _passengerCountGroupId = null;
+    activePassengerCount = 1;
+  }
+
+  void _startPassengerCountListener(String? groupId) {
+    if (groupId == null || groupId.isEmpty) return;
+    if (_passengerCountGroupId == groupId) return;
+    _passengerCountSub?.cancel();
+    _passengerCountGroupId = groupId;
+    _passengerCountSub = _rideService
+        .getPassengerCountStream(groupId: groupId)
+        .listen((count) {
+          activePassengerCount = count < 1 ? 1 : count;
+          notifyListeners();
+        });
+  }
+
+  double get perPersonFare {
+    final total = offeredPrice ?? 0;
+    final count = activePassengerCount < 1 ? 1 : activePassengerCount;
+    return total / count;
   }
 
   Future<void> _loadRecentSearches() async {
@@ -424,6 +521,180 @@ class HomeController extends ChangeNotifier {
     } catch (_) {}
   }
 
+  LatLng? get pickupPoint {
+    final trip = activeTripData;
+    if (trip == null) return null;
+    final lat = trip['origin_lat'];
+    final lng = trip['origin_lng'];
+    if (lat == null || lng == null) return null;
+    return LatLng((lat as num).toDouble(), (lng as num).toDouble());
+  }
+
+  LatLng? get destinationPointFromTrip {
+    final trip = activeTripData;
+    if (trip == null) return null;
+    final lat = trip['dest_lat'];
+    final lng = trip['dest_lng'];
+    if (lat == null || lng == null) return null;
+    return LatLng((lat as num).toDouble(), (lng as num).toDouble());
+  }
+
+  String? get tripStatus => activeTripData?['status']?.toString();
+
+  LatLng? _pickupRouteStartPoint() {
+    if (userRole == 'driver') return currentPosition;
+    return driverPosition;
+  }
+
+  LatLng? _tripRouteStartPoint() {
+    if (userRole == 'driver') return currentPosition;
+    return driverPosition;
+  }
+
+  void _maybeUpdatePickupRoute({bool force = false}) {
+    final start = _pickupRouteStartPoint();
+    final pickup = pickupPoint;
+    if (start == null || pickup == null) return;
+
+    final now = DateTime.now();
+    final shouldThrottleByTime =
+        _lastPickupRouteTime != null &&
+        now.difference(_lastPickupRouteTime!).inSeconds < 20;
+
+    final shouldThrottleByDistance =
+        _lastPickupRouteStart != null &&
+        Geolocator.distanceBetween(
+              _lastPickupRouteStart!.latitude,
+              _lastPickupRouteStart!.longitude,
+              start.latitude,
+              start.longitude,
+            ) <
+            50;
+
+    if (!force &&
+        pickupRoutePoints.isNotEmpty &&
+        (shouldThrottleByTime || shouldThrottleByDistance)) {
+      return;
+    }
+
+    _lastPickupRouteStart = start;
+    _lastPickupRouteTime = now;
+    fetchPickupRoute(start, pickup, fitCamera: userRole == 'driver');
+  }
+
+  void _maybeUpdateTripRoute({bool force = false}) {
+    final start = _tripRouteStartPoint();
+    final end = destinationPointFromTrip;
+    if (start == null || end == null) return;
+
+    final now = DateTime.now();
+    final shouldThrottleByTime =
+        _lastTripRouteTime != null &&
+        now.difference(_lastTripRouteTime!).inSeconds < 20;
+
+    final shouldThrottleByDistance =
+        _lastTripRouteStart != null &&
+        Geolocator.distanceBetween(
+              _lastTripRouteStart!.latitude,
+              _lastTripRouteStart!.longitude,
+              start.latitude,
+              start.longitude,
+            ) <
+            50;
+
+    if (!force &&
+        tripRoutePoints.isNotEmpty &&
+        (shouldThrottleByTime || shouldThrottleByDistance)) {
+      return;
+    }
+
+    _lastTripRouteStart = start;
+    _lastTripRouteTime = now;
+    fetchTripRoute(start, end, fitCamera: userRole == 'driver');
+  }
+
+  Future<void> fetchPickupRoute(
+    LatLng start,
+    LatLng end, {
+    bool fitCamera = false,
+  }) async {
+    final options = RouteRequest(
+      coordinates: [
+        (start.longitude, start.latitude),
+        (end.longitude, end.latitude),
+      ],
+      geometries: OsrmGeometries.geojson,
+    );
+    try {
+      final route = await _osrm.route(options);
+      if (route.routes.isNotEmpty) {
+        final distance = route.routes.first.distance;
+        final duration = route.routes.first.duration;
+        final coords = route.routes.first.geometry?.lineString?.coordinates;
+        if (coords != null) {
+          pickupRoutePoints = coords.map((c) => LatLng(c.$2, c.$1)).toList();
+          pickupRouteDistance = distance;
+          pickupRouteDuration = duration;
+          notifyListeners();
+
+          if (fitCamera && pickupRoutePoints.isNotEmpty) {
+            mapController.fitCamera(
+              CameraFit.bounds(
+                bounds: LatLngBounds.fromPoints([
+                  start,
+                  end,
+                  ...pickupRoutePoints,
+                ]),
+                padding: const EdgeInsets.all(50.0),
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> fetchTripRoute(
+    LatLng start,
+    LatLng end, {
+    bool fitCamera = false,
+  }) async {
+    final options = RouteRequest(
+      coordinates: [
+        (start.longitude, start.latitude),
+        (end.longitude, end.latitude),
+      ],
+      geometries: OsrmGeometries.geojson,
+    );
+    try {
+      final route = await _osrm.route(options);
+      if (route.routes.isNotEmpty) {
+        final distance = route.routes.first.distance;
+        final duration = route.routes.first.duration;
+        final coords = route.routes.first.geometry?.lineString?.coordinates;
+        if (coords != null) {
+          tripRoutePoints = coords.map((c) => LatLng(c.$2, c.$1)).toList();
+          tripRouteDistance = distance;
+          tripRouteDuration = duration;
+          notifyListeners();
+
+          if (fitCamera && tripRoutePoints.isNotEmpty) {
+            mapController.fitCamera(
+              CameraFit.bounds(
+                bounds: LatLngBounds.fromPoints([
+                  start,
+                  end,
+                  ...tripRoutePoints,
+                ]),
+                padding: const EdgeInsets.all(50.0),
+              ),
+            );
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<void> createGroup(BuildContext context, String currentLanguage) async {
     if (destination == null || currentPosition == null) return;
     try {
@@ -501,6 +772,173 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> cancelCurrentTrip(BuildContext context, String lang) async {
+    if (currentGroupId == null) return;
+
+    final isDriver = userRole == 'driver';
+    final status =
+        tripStatus ??
+        (isPickingUp
+            ? 'driver_assigned'
+            : (isOnTrip
+                  ? 'active'
+                  : (isSearching
+                        ? 'searching_driver'
+                        : (isGatheringMembers ? 'gathering' : ''))));
+
+    final reasons = _getCancelReasons(lang, isDriver: isDriver, status: status);
+
+    final String? selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        lang == 'es'
+                            ? '¿Por qué cancelas el viaje?'
+                            : 'Why are you cancelling?',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.close_rounded, color: scheme.onSurface),
+                    ),
+                  ],
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: reasons.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final reason = reasons[index];
+                    return ListTile(
+                      title: Text(reason),
+                      onTap: () => Navigator.pop(context, reason),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: scheme.error,
+                      side: BorderSide(color: scheme.error),
+                    ),
+                    child: Text(lang == 'es' ? 'No cancelar' : 'Don’t cancel'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null) return;
+
+    await _rideService.cancelGroup(currentGroupId!, reason: selected);
+    _resetAfterCancel();
+  }
+
+  List<String> _getCancelReasons(
+    String lang, {
+    required bool isDriver,
+    required String status,
+  }) {
+    if (lang != 'es') {
+      return [
+        'Changed my mind',
+        'Wrong pickup location',
+        'Driver / passenger not responding',
+        'Too long waiting time',
+        'Price not fair',
+        'Other reason',
+      ];
+    }
+
+    if (status == 'gathering' || status == 'searching_driver') {
+      return [
+        'Cambié de planes',
+        'Me equivoqué de destino',
+        'La espera es muy larga',
+        'El precio no me convence',
+        'Otro motivo',
+      ];
+    }
+
+    if (status == 'driver_assigned') {
+      return isDriver
+          ? [
+              'No puedo llegar al punto de recogida',
+              'El usuario no responde',
+              'Problema con el vehículo',
+              'Otro motivo',
+            ]
+          : [
+              'El conductor no se mueve',
+              'El conductor está muy lejos',
+              'Ya no necesito el viaje',
+              'Otro motivo',
+            ];
+    }
+
+    if (status == 'active') {
+      return isDriver
+          ? [
+              'El usuario no pagará',
+              'Problema de seguridad',
+              'Problema con el vehículo',
+              'Otro motivo',
+            ]
+          : [
+              'Problema de seguridad',
+              'El conductor tomó una ruta incorrecta',
+              'No continuaré el viaje',
+              'Otro motivo',
+            ];
+    }
+
+    return ['Cambié de planes', 'Otro motivo'];
+  }
+
+  void _resetAfterCancel() {
+    isSearching = false;
+    isGatheringMembers = false;
+    isOnTrip = false;
+    isPaymentPending = false;
+    isPickingUp = false;
+    currentGroupId = null;
+    _stopPassengerCountListener();
+    offeredPrice = null;
+    activeTripData = null;
+    routePoints = [];
+    pickupRoutePoints = [];
+    tripRoutePoints = [];
+    _stopDriverLocationListener();
+    clearDestination();
+    notifyListeners();
+  }
+
   Future<void> updateOfferedPrice(double newPrice) async {
     if (newPrice < 5000) newPrice = 5000; // Mínimo absoluto
     offeredPrice = newPrice;
@@ -511,8 +949,21 @@ class HomeController extends ChangeNotifier {
     }
   }
 
+  void _stopDriverLocationListener() {
+    _driverLocationSub?.cancel();
+    _driverLocationSub = null;
+    _driverLocationDriverId = null;
+    driverPosition = null;
+  }
+
   void _startDriverLocationListener(String driverId) {
-    _rideService.getDriverLocationStream(driverId).listen((data) {
+    if (_driverLocationDriverId == driverId) return;
+    _driverLocationSub?.cancel();
+    _driverLocationDriverId = driverId;
+
+    _driverLocationSub = _rideService.getDriverLocationStream(driverId).listen((
+      data,
+    ) {
       if (data != null &&
           data['last_lat'] != null &&
           data['last_lng'] != null) {
@@ -520,6 +971,12 @@ class HomeController extends ChangeNotifier {
           (data['last_lat'] as num).toDouble(),
           (data['last_lng'] as num).toDouble(),
         );
+        if (isPickingUp) {
+          _maybeUpdatePickupRoute();
+        }
+        if (isOnTrip) {
+          _maybeUpdateTripRoute();
+        }
         notifyListeners();
       }
     });
@@ -533,5 +990,12 @@ class HomeController extends ChangeNotifier {
     isPaymentPending = false;
     clearDestination();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _driverLocationSub?.cancel();
+    _passengerCountSub?.cancel();
+    super.dispose();
   }
 }

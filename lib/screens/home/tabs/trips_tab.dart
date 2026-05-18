@@ -127,11 +127,21 @@ class TripsTab extends StatelessWidget {
     final lang = context.watch<LanguageController>().currentLanguage;
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final showPickupRoute =
+        controller.isPickingUp && controller.pickupRoutePoints.isNotEmpty;
+    final showTripRoute =
+        controller.isOnTrip && controller.tripRoutePoints.isNotEmpty;
+    final polylinePoints = showPickupRoute
+        ? controller.pickupRoutePoints
+        : (showTripRoute ? controller.tripRoutePoints : controller.routePoints);
+    final tripDestination = controller.destinationPointFromTrip;
+    final driverMarkerPoint = controller.userRole == 'driver'
+        ? controller.currentPosition
+        : controller.driverPosition;
 
     if (controller.currentPosition == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return Scaffold(
       body: Stack(
         children: [
@@ -141,7 +151,11 @@ class TripsTab extends StatelessWidget {
               initialCenter: controller.currentPosition!,
               initialZoom: 15,
               onTap: (_, point) {
-                controller.setDestination(point);
+                if (controller.userRole != 'driver' &&
+                    !controller.isPickingUp &&
+                    !controller.isOnTrip) {
+                  controller.setDestination(point);
+                }
               },
             ),
             children: [
@@ -152,11 +166,11 @@ class TripsTab extends StatelessWidget {
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.ridematch.communityapp',
               ),
-              if (controller.routePoints.isNotEmpty)
+              if (polylinePoints.isNotEmpty)
                 PolylineLayer(
                   polylines: [
                     Polyline(
-                      points: controller.routePoints,
+                      points: polylinePoints,
                       color: colorScheme.primary,
                       strokeWidth: 5.0,
                     ),
@@ -192,6 +206,17 @@ class TripsTab extends StatelessWidget {
                       ),
                     ),
                   ),
+                  if (controller.isPickingUp && controller.pickupPoint != null)
+                    Marker(
+                      point: controller.pickupPoint!,
+                      width: 44,
+                      height: 44,
+                      child: Icon(
+                        Icons.hail_rounded,
+                        color: Colors.orange.shade700,
+                        size: 40,
+                      ),
+                    ),
                   if (controller.destination != null)
                     Marker(
                       point: controller.destination!,
@@ -203,10 +228,21 @@ class TripsTab extends StatelessWidget {
                         size: 40,
                       ),
                     ),
-                  if ((controller.isPickingUp || controller.isOnTrip) &&
-                      controller.driverPosition != null)
+                  if (controller.isOnTrip && tripDestination != null)
                     Marker(
-                      point: controller.driverPosition!,
+                      point: tripDestination,
+                      width: 40,
+                      height: 40,
+                      child: Icon(
+                        Icons.flag_rounded,
+                        color: colorScheme.primary,
+                        size: 34,
+                      ),
+                    ),
+                  if ((controller.isPickingUp || controller.isOnTrip) &&
+                      driverMarkerPoint != null)
+                    Marker(
+                      point: driverMarkerPoint,
                       width: 45,
                       height: 45,
                       child: Container(
