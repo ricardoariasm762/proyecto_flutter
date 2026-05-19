@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../core/localization/language_controller.dart';
 import '../core/localization/app_dictionary.dart';
+import 'home_screen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -63,7 +64,20 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       if (_isLogin) {
-        await _authService.signIn(email, password);
+        final response = await _authService.signIn(email, password);
+        if (mounted && response.session != null) {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  const HomeScreen(),
+              transitionsBuilder:
+                  (context, animation, secondaryAnimation, child) {
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+              transitionDuration: const Duration(milliseconds: 300),
+            ),
+          );
+        }
       } else {
         final response = await _authService.signUp(
           email: email,
@@ -91,6 +105,17 @@ class _AuthScreenState extends State<AuthScreen> {
               const SnackBar(
                 content: Text('Success!'),
                 backgroundColor: Colors.green,
+              ),
+            );
+            Navigator.of(context).pushReplacement(
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const HomeScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                transitionDuration: const Duration(milliseconds: 300),
               ),
             );
           }

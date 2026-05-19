@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/controllers/home_controller.dart';
 import '../core/localization/app_dictionary.dart';
 import '../core/localization/language_controller.dart';
+import '../screens/auth_screen.dart';
 import '../screens/my_trips_screen.dart';
 import '../screens/theme_tab.dart';
 import '../services/auth_service.dart';
@@ -43,9 +44,9 @@ class HomeNavigationDrawer extends StatelessWidget {
                   Text(
                     AppDictionary.text(lang, 'app_title'),
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: scheme.onPrimary,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      color: scheme.onPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -84,7 +85,10 @@ class HomeNavigationDrawer extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: Icon(Icons.directions_car_filled_rounded, color: scheme.primary),
+            leading: Icon(
+              Icons.directions_car_filled_rounded,
+              color: scheme.primary,
+            ),
             title: Text(AppDictionary.text(lang, 'my_trips')),
             subtitle: Text(AppDictionary.text(lang, 'my_trips_subtitle')),
             onTap: () {
@@ -123,6 +127,19 @@ class HomeNavigationDrawer extends StatelessWidget {
             onTap: () async {
               Navigator.pop(context);
               await AuthService().signOut();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const AuthScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
+                  transitionDuration: const Duration(milliseconds: 300),
+                ),
+                (route) => false,
+              );
             },
           ),
         ],
