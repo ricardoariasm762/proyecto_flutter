@@ -9,7 +9,6 @@ import 'home/tabs/trips_tab.dart';
 import 'home/tabs/community_tab.dart';
 import 'home/tabs/profile_tab.dart';
 import '../widgets/incoming_request_screen.dart';
-import '../widgets/home_navigation_drawer.dart';
 import '../theme/theme_controller.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -123,29 +122,10 @@ class _HomeScreenState extends State<HomeScreen> {
         final isMadrid = ThemeController.instance.isHalaMadridMode;
 
         return Scaffold(
-          drawer: const HomeNavigationDrawer(),
           appBar: AppBar(
             title: Text(AppDictionary.text(lang, 'app_title')),
             backgroundColor: Colors.transparent,
             elevation: 0,
-            leading: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu_rounded),
-                onPressed: () {
-                  if (controller.isSearching ||
-                      controller.isGatheringMembers ||
-                      controller.isOnTrip) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Cancela el viaje actual para navegar'),
-                      ),
-                    );
-                    return;
-                  }
-                  Scaffold.of(context).openDrawer();
-                },
-              ),
-            ),
             actions: [
               if (isDriver)
                 Padding(
