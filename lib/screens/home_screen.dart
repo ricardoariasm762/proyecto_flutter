@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import '../core/controllers/home_controller.dart';
 import '../core/localization/language_controller.dart';
 import '../core/localization/app_dictionary.dart';
@@ -10,6 +12,52 @@ import 'home/tabs/community_tab.dart';
 import 'home/tabs/profile_tab.dart';
 import '../widgets/incoming_request_screen.dart';
 import '../theme/theme_controller.dart';
+
+const String _rideMatchMarkSvg = '''
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path fill="currentColor" d="M14 38l4-14c1-4 4-6 8-6h12c4 0 7 2 8 6l4 14v10c0 2-2 4-4 4h-2c-2 0-4-2-4-4v-2H20v2c0 2-2 4-4 4h-2c-2 0-4-2-4-4V38z"/>
+  <circle cx="22" cy="38" r="4" fill="currentColor" opacity="0.35"/>
+  <circle cx="42" cy="38" r="4" fill="currentColor" opacity="0.35"/>
+</svg>
+''';
+
+const String _lottieGatheringUrl =
+    'https://assets9.lottiefiles.com/packages/lf20_gigyrcoy.json';
+const String _lottieSearchingUrl =
+    'https://assets8.lottiefiles.com/packages/lf20_q0cz4zhn.json';
+const String _lottiePickupUrl =
+    'https://assets10.lottiefiles.com/packages/lf20_1pxqjqps.json';
+const String _lottiePaymentUrl =
+    'https://assets9.lottiefiles.com/packages/lf20_dk09m2uo.json';
+
+class _LottieOrIcon extends StatelessWidget {
+  const _LottieOrIcon({
+    required this.url,
+    required this.fallbackIcon,
+    required this.color,
+    required this.size,
+  });
+
+  final String url;
+  final IconData fallbackIcon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Lottie.network(
+      url,
+      width: size,
+      height: size,
+      fit: BoxFit.contain,
+      repeat: true,
+      frameRate: FrameRate.max,
+      errorBuilder: (context, error, stackTrace) {
+        return Icon(fallbackIcon, color: color, size: size);
+      },
+    );
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -123,7 +171,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(AppDictionary.text(lang, 'app_title')),
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SvgPicture.string(
+                  _rideMatchMarkSvg,
+                  width: 22,
+                  height: 22,
+                  colorFilter: ColorFilter.mode(
+                    Theme.of(context).colorScheme.onSurface,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(AppDictionary.text(lang, 'app_title')),
+              ],
+            ),
             backgroundColor: Colors.transparent,
             elevation: 0,
             actions: [
@@ -303,11 +366,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           : Colors.green.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      isPickingUp
+                    child: _LottieOrIcon(
+                      url: isPickingUp ? _lottiePickupUrl : _lottieSearchingUrl,
+                      fallbackIcon: isPickingUp
                           ? Icons.hail_rounded
                           : Icons.directions_car_rounded,
                       color: isPickingUp ? Colors.orange : Colors.green,
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -500,9 +565,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: statusColor.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: (controller.isSearching)
-                    ? const CircularProgressIndicator()
-                    : Icon(statusIcon, size: 48, color: statusColor),
+                child: () {
+                  if (controller.isSearching) {
+                    return _LottieOrIcon(
+                      url: _lottieSearchingUrl,
+                      fallbackIcon: Icons.search_rounded,
+                      color: statusColor,
+                      size: 52,
+                    );
+                  }
+                  if (controller.isPaymentPending) {
+                    return _LottieOrIcon(
+                      url: _lottiePaymentUrl,
+                      fallbackIcon: Icons.payments_rounded,
+                      color: statusColor,
+                      size: 52,
+                    );
+                  }
+                  return _LottieOrIcon(
+                    url: _lottieGatheringUrl,
+                    fallbackIcon: statusIcon,
+                    color: statusColor,
+                    size: 52,
+                  );
+                }(),
               ),
               const SizedBox(height: 24),
               Text(
