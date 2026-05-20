@@ -1,10 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:lottie/lottie.dart';
 import '../services/auth_service.dart';
 import '../core/localization/language_controller.dart';
 import '../core/localization/app_dictionary.dart';
 import 'home_screen.dart';
+
+const String _rideMatchMarkSvg = '''
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path fill="currentColor" d="M14 38l4-14c1-4 4-6 8-6h12c4 0 7 2 8 6l4 14v10c0 2-2 4-4 4h-2c-2 0-4-2-4-4v-2H20v2c0 2-2 4-4 4h-2c-2 0-4-2-4-4V38z"/>
+  <circle cx="22" cy="38" r="4" fill="currentColor" opacity="0.35"/>
+  <circle cx="42" cy="38" r="4" fill="currentColor" opacity="0.35"/>
+</svg>
+''';
+
+const String _loginLottieUrl =
+    'https://assets10.lottiefiles.com/packages/lf20_1pxqjqps.json';
+const String _signupLottieUrl =
+    'https://assets10.lottiefiles.com/packages/lf20_7wwm3vln.json';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -255,10 +270,14 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           child: Transform.rotate(
                             angle: -0.12,
-                            child: Icon(
-                              Icons.directions_car_rounded,
-                              size: 34,
-                              color: colorScheme.onSurface,
+                            child: SvgPicture.string(
+                              _rideMatchMarkSvg,
+                              width: 34,
+                              height: 34,
+                              colorFilter: ColorFilter.mode(
+                                colorScheme.onSurface,
+                                BlendMode.srcIn,
+                              ),
                             ),
                           ),
                         ),
@@ -273,28 +292,98 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
                   Center(
-                    child: Text(
-                      _isLogin
-                          ? AppDictionary.text(lang, 'welcome_back')
-                          : AppDictionary.text(lang, 'create_account'),
-                      textAlign: TextAlign.center,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 260),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.08),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: SizedBox(
+                        key: ValueKey(_isLogin ? 'login_anim' : 'signup_anim'),
+                        height: 110,
+                        width: 220,
+                        child: Lottie.network(
+                          _isLogin ? _loginLottieUrl : _signupLottieUrl,
+                          fit: BoxFit.contain,
+                          repeat: true,
+                          frameRate: FrameRate.max,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Center(
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.08),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        _isLogin
+                            ? AppDictionary.text(lang, 'welcome_back')
+                            : AppDictionary.text(lang, 'create_account'),
+                        key: ValueKey(_isLogin ? 'welcome' : 'create'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.3,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
                   Center(
-                    child: Text(
-                      _isLogin
-                          ? AppDictionary.text(lang, 'login_subtitle')
-                          : AppDictionary.text(lang, 'signup_subtitle'),
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      switchInCurve: Curves.easeOutCubic,
+                      switchOutCurve: Curves.easeInCubic,
+                      transitionBuilder: (child, animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.08),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: Text(
+                        _isLogin
+                            ? AppDictionary.text(lang, 'login_subtitle')
+                            : AppDictionary.text(lang, 'signup_subtitle'),
+                        key: ValueKey(_isLogin ? 'sub_login' : 'sub_signup'),
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                   ),
@@ -324,53 +413,98 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!_isLogin) ...[
-                          _buildLabel(AppDictionary.text(lang, 'full_name')),
-                          TextField(
-                            controller: _nameController,
-                            style: TextStyle(color: colorScheme.onSurface),
-                            decoration: _inputDecoration(
-                              AppDictionary.text(lang, 'full_name'),
-                              Icons.person_outline,
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          _buildLabel(AppDictionary.text(lang, 'select_role')),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? colorScheme.surfaceContainerHighest
-                                  : colorScheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                color: colorScheme.outlineVariant.withValues(
-                                  alpha: isDark ? 0.2 : 0.35,
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 220),
+                            switchInCurve: Curves.easeOutCubic,
+                            switchOutCurve: Curves.easeInCubic,
+                            transitionBuilder: (child, animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: const Offset(0, 0.06),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
                                 ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _roleButton(
-                                    AppDictionary.text(lang, 'passenger'),
-                                    'passenger',
-                                    Icons.person_outline,
+                              );
+                            },
+                            child: _isLogin
+                                ? const SizedBox.shrink()
+                                : Column(
+                                    key: const ValueKey('signup_extra'),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _buildLabel(
+                                        AppDictionary.text(lang, 'full_name'),
+                                      ),
+                                      TextField(
+                                        controller: _nameController,
+                                        style: TextStyle(
+                                          color: colorScheme.onSurface,
+                                        ),
+                                        decoration: _inputDecoration(
+                                          AppDictionary.text(lang, 'full_name'),
+                                          Icons.person_outline,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _buildLabel(
+                                        AppDictionary.text(lang, 'select_role'),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? colorScheme
+                                                    .surfaceContainerHighest
+                                              : colorScheme.surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          border: Border.all(
+                                            color: colorScheme.outlineVariant
+                                                .withValues(
+                                                  alpha: isDark ? 0.2 : 0.35,
+                                                ),
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Expanded(
+                                              child: _roleButton(
+                                                AppDictionary.text(
+                                                  lang,
+                                                  'passenger',
+                                                ),
+                                                'passenger',
+                                                Icons.person_outline,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: _roleButton(
+                                                AppDictionary.text(
+                                                  lang,
+                                                  'driver',
+                                                ),
+                                                'driver',
+                                                Icons.directions_car_outlined,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 18),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: _roleButton(
-                                    AppDictionary.text(lang, 'driver'),
-                                    'driver',
-                                    Icons.directions_car_outlined,
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
-                          const SizedBox(height: 18),
-                        ],
+                        ),
                         _buildLabel(AppDictionary.text(lang, 'email')),
                         TextField(
                           controller: _emailController,
