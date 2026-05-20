@@ -43,9 +43,10 @@ class _CommunityTabState extends State<CommunityTab> {
     return DefaultTabController(
       length: isDriver ? 1 : 2,
       child: Scaffold(
-        backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
+        backgroundColor: colorScheme.surface,
         appBar: AppBar(
-          backgroundColor: isDark ? colorScheme.surface : Colors.white,
+          backgroundColor: Colors.transparent,
+          surfaceTintColor: Colors.transparent,
           elevation: 0,
           centerTitle: false,
           title: Text(
@@ -121,7 +122,7 @@ class _CommunityTabState extends State<CommunityTab> {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           itemCount: groups.length + 1,
           itemBuilder: (context, index) {
             if (index == 0) {
@@ -264,9 +265,14 @@ class _CommunityTabState extends State<CommunityTab> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: isDark
-                        ? colorScheme.surfaceVariant
-                        : Colors.grey[100],
+                        ? colorScheme.surfaceContainerHighest
+                        : colorScheme.surfaceContainerLow,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(
+                        alpha: isDark ? 0.2 : 0.35,
+                      ),
+                    ),
                   ),
                   child: Icon(
                     Icons.group_off_rounded,
@@ -363,11 +369,13 @@ class _CommunityTabState extends State<CommunityTab> {
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? colorScheme.surfaceVariant
-                            : Colors.white,
+                            ? colorScheme.surfaceContainerHighest
+                            : colorScheme.surfaceContainerLow,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: colorScheme.outline.withOpacity(0.1),
+                          color: colorScheme.outlineVariant.withValues(
+                            alpha: isDark ? 0.2 : 0.35,
+                          ),
                         ),
                       ),
                       child: Row(
@@ -377,8 +385,8 @@ class _CommunityTabState extends State<CommunityTab> {
                                 ? Icons.verified_rounded
                                 : Icons.hourglass_top_rounded,
                             color: myStatus == 'accepted'
-                                ? Colors.green
-                                : Colors.orange,
+                                ? colorScheme.tertiary
+                                : colorScheme.secondary,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -421,11 +429,13 @@ class _CommunityTabState extends State<CommunityTab> {
                           ),
                           decoration: BoxDecoration(
                             color: isDark
-                                ? colorScheme.surfaceVariant
-                                : Colors.white,
+                                ? colorScheme.surfaceContainerHighest
+                                : colorScheme.surfaceContainerLow,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: colorScheme.outline.withOpacity(0.1),
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: isDark ? 0.2 : 0.35,
+                              ),
                             ),
                           ),
                           child: Row(
@@ -448,9 +458,9 @@ class _CommunityTabState extends State<CommunityTab> {
                                           membershipId: membershipId,
                                         );
                                       },
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.check_circle_rounded,
-                                  color: Colors.green,
+                                  color: colorScheme.tertiary,
                                 ),
                               ),
                               IconButton(
@@ -461,9 +471,9 @@ class _CommunityTabState extends State<CommunityTab> {
                                           membershipId: membershipId,
                                         );
                                       },
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.cancel_rounded,
-                                  color: Colors.red,
+                                  color: colorScheme.error,
                                 ),
                               ),
                             ],
@@ -500,7 +510,7 @@ class _CommunityTabState extends State<CommunityTab> {
                 icon: Icons.chat_bubble_outline_rounded,
                 title: AppDictionary.text(lang, 'group_chat'),
                 subtitle: 'Comunícate con los demás miembros',
-                color: Colors.blue,
+                color: colorScheme.secondary,
                 onTap: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -543,16 +553,18 @@ class _CommunityTabState extends State<CommunityTab> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surfaceVariant : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.22)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24),
@@ -579,7 +591,10 @@ class _CommunityTabState extends State<CommunityTab> {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: color.withOpacity(0.5)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
+            ),
           ],
         ),
       ),
@@ -595,26 +610,26 @@ class _CommunityTabState extends State<CommunityTab> {
     IconData icon = Icons.people_outline;
     String title = AppDictionary.text(lang, 'status_gathering');
     String desc = AppDictionary.text(lang, 'status_gathering_desc');
-    Color color = Colors.orange;
+    Color color = colorScheme.secondary;
 
     if (status == 'searching_driver') {
       icon = Icons.search_rounded;
       title = AppDictionary.text(lang, 'status_searching');
       desc = AppDictionary.text(lang, 'status_searching_desc');
-      color = Colors.blue;
+      color = colorScheme.primary;
     } else if (status == 'driver_assigned') {
       icon = Icons.check_circle_outline_rounded;
       title = AppDictionary.text(lang, 'status_assigned');
       desc = AppDictionary.text(lang, 'status_assigned_desc');
-      color = Colors.green;
+      color = colorScheme.tertiary;
     }
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.20)),
       ),
       child: Row(
         children: [
@@ -635,7 +650,10 @@ class _CommunityTabState extends State<CommunityTab> {
                 const SizedBox(height: 4),
                 Text(
                   desc,
-                  style: TextStyle(color: color.withOpacity(0.8), fontSize: 13),
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.80),
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),

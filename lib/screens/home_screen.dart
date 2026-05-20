@@ -138,15 +138,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: controller.isDriverOnline
-                              ? Colors.green
-                              : Colors.grey,
+                              ? colorScheme.tertiary
+                              : colorScheme.onSurfaceVariant,
                         ),
                       ),
                       Switch(
                         value: controller.isDriverOnline,
                         onChanged: (val) =>
                             controller.toggleDriverOnline(val, context),
-                        activeColor: Colors.green,
+                        activeColor: colorScheme.tertiary,
                       ),
                     ],
                   ),
@@ -187,22 +187,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ? null
               : Container(
                   decoration: BoxDecoration(
-                    color: isDark ? colorScheme.surface : Colors.white,
+                    color: colorScheme.surface,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, -2),
+                        color: Colors.black.withValues(
+                          alpha: isDark ? 0.35 : 0.08,
+                        ),
+                        blurRadius: 16,
+                        offset: const Offset(0, -6),
                       ),
                     ],
                   ),
                   child: NavigationBar(
                     height: 65,
-                    backgroundColor: isDark
-                        ? colorScheme.surface
-                        : Colors.white,
+                    backgroundColor: colorScheme.surface,
                     elevation: 0,
-                    indicatorColor: colorScheme.primary.withOpacity(0.1),
+                    indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
                     selectedIndex: safeTabIndex,
                     onDestinationSelected: (index) =>
                         controller.setTabIndex(index),

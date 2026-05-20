@@ -19,11 +19,10 @@ class ThemeTab extends StatelessWidget {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Scaffold(
-          backgroundColor: isDark
-              ? colorScheme.surface
-              : const Color(0xFFF8F9FA),
+          backgroundColor: colorScheme.surface,
           appBar: AppBar(
-            backgroundColor: isDark ? colorScheme.surface : Colors.white,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
@@ -87,9 +86,15 @@ class ThemeTab extends StatelessWidget {
   ) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceVariant : Colors.white,
+        color: isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withOpacity(0.1)),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.2 : 0.35,
+          ),
+        ),
       ),
       child: Column(
         children: [
@@ -149,7 +154,7 @@ class ThemeTab extends StatelessWidget {
           ? Icon(Icons.check_circle, color: colorScheme.primary)
           : Icon(
               Icons.circle_outlined,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
             ),
     );
   }
@@ -179,23 +184,25 @@ class ThemeTab extends StatelessWidget {
                 width: 100,
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? colorScheme.primary.withOpacity(0.1)
+                      ? colorScheme.primary.withValues(alpha: 0.10)
                       : (isDark
-                            ? colorScheme.surfaceVariant
-                            : Colors.white),
+                            ? colorScheme.surfaceContainerHighest
+                            : colorScheme.surfaceContainerLow),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isSelected
                         ? colorScheme.primary
-                        : colorScheme.outline.withOpacity(0.1),
+                        : colorScheme.outlineVariant.withValues(
+                            alpha: isDark ? 0.2 : 0.35,
+                          ),
                     width: isSelected ? 2 : 1,
                   ),
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: colorScheme.primary.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: colorScheme.primary.withValues(alpha: 0.18),
+                            blurRadius: 16,
+                            offset: const Offset(0, 10),
                           ),
                         ]
                       : null,
@@ -265,10 +272,14 @@ class ThemeTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceVariant : Colors.white,
+        color: isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colorScheme.outline.withOpacity(0.1),
+          color: colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.2 : 0.35,
+          ),
         ),
       ),
       child: Row(
@@ -314,13 +325,15 @@ class ThemeTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceVariant : Colors.white,
+        color: isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -345,7 +358,7 @@ class ThemeTab extends StatelessWidget {
                       width: 100,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withOpacity(0.1),
+                        color: colorScheme.onSurface.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(5),
                       ),
                     ),
@@ -354,7 +367,7 @@ class ThemeTab extends StatelessWidget {
                       width: 60,
                       height: 8,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withOpacity(0.05),
+                        color: colorScheme.onSurface.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -373,7 +386,7 @@ class ThemeTab extends StatelessWidget {
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
               child: Text(AppDictionary.text(lang, 'example_button')),

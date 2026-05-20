@@ -14,9 +14,10 @@ class LanguageScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: isDark ? colorScheme.surface : Colors.white,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
@@ -75,13 +76,17 @@ class LanguageScreen extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected
-              ? colorScheme.primary.withOpacity(0.1)
-              : (isDark ? colorScheme.surfaceVariant : Colors.white),
+              ? colorScheme.primary.withValues(alpha: 0.10)
+              : (isDark
+                    ? colorScheme.surfaceContainerHighest
+                    : colorScheme.surfaceContainerLow),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected
                 ? colorScheme.primary
-                : colorScheme.outline.withOpacity(0.1),
+                : colorScheme.outlineVariant.withValues(
+                    alpha: isDark ? 0.2 : 0.35,
+                  ),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -93,7 +98,7 @@ class LanguageScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? colorScheme.primary
-                    : colorScheme.onSurface.withOpacity(0.05),
+                    : colorScheme.onSurface.withValues(alpha: 0.06),
                 shape: BoxShape.circle,
               ),
               child: Center(

@@ -22,9 +22,10 @@ class ProfileTab extends StatelessWidget {
     final user = authService.currentUser;
 
     return Scaffold(
-      backgroundColor: isDark ? colorScheme.surface : const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: isDark ? colorScheme.surface : Colors.white,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: Text(
           AppDictionary.text(lang, 'profile'),
@@ -141,13 +142,15 @@ class ProfileTab extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surfaceVariant : Colors.white,
+        color: isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -221,10 +224,14 @@ class _OptionTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surfaceVariant : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: colorScheme.outline.withOpacity(isDark ? 0.2 : 0.5),
+            color: colorScheme.outlineVariant.withValues(
+              alpha: isDark ? 0.2 : 0.35,
+            ),
           ),
         ),
         child: Row(
@@ -233,8 +240,8 @@ class _OptionTile extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDestructive
-                    ? colorScheme.error.withOpacity(0.1)
-                    : colorScheme.primary.withOpacity(0.1),
+                    ? colorScheme.error.withValues(alpha: 0.12)
+                    : colorScheme.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -270,7 +277,7 @@ class _OptionTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
             ),
           ],
         ),

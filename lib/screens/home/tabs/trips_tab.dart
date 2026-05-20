@@ -271,8 +271,8 @@ class TripsTab extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: isDark
-                                    ? colorScheme.surfaceVariant
-                                    : const Color(0xFFF5F5F5),
+                                    ? colorScheme.surfaceContainerHighest
+                                    : colorScheme.surfaceContainerLow,
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: Row(
@@ -317,12 +317,8 @@ class TripsTab extends StatelessWidget {
                       await controller.createGroup(context, lang);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? colorScheme.primary
-                          : Colors.black,
-                      foregroundColor: isDark
-                          ? colorScheme.onPrimary
-                          : Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -407,13 +403,17 @@ class TripsTab extends StatelessWidget {
                     height: 40,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDark ? colorScheme.surface : Colors.white,
+                        color: isDark
+                            ? colorScheme.surfaceContainerHighest
+                            : colorScheme.surfaceContainerLow,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: isDark ? Colors.black54 : Colors.black26,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.35 : 0.08,
+                            ),
+                            blurRadius: 14,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
@@ -469,20 +469,24 @@ class TripsTab extends StatelessWidget {
                       width: 45,
                       height: 45,
                       child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? colorScheme.surfaceContainerHighest
+                              : colorScheme.surfaceContainerLow,
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.35 : 0.08,
+                              ),
+                              blurRadius: 14,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.directions_car_filled_rounded,
-                          color: Colors.green,
+                          color: colorScheme.tertiary,
                           size: 30,
                         ),
                       ),
@@ -569,13 +573,15 @@ class TripsTab extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 5),
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -590,7 +596,7 @@ class TripsTab extends StatelessWidget {
                     : controller.getDestinationTitle(lang),
                 style: TextStyle(
                   color: controller.destination == null
-                      ? colorScheme.onSurfaceVariant.withOpacity(0.6)
+                      ? colorScheme.onSurfaceVariant.withValues(alpha: 0.65)
                       : colorScheme.onSurface,
                   fontWeight: controller.destination == null
                       ? FontWeight.normal
@@ -630,13 +636,15 @@ class TripsTab extends StatelessWidget {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
@@ -660,8 +668,17 @@ class TripsTab extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: isDark ? colorScheme.surface : Colors.white,
+            color: isDark
+                ? colorScheme.surfaceContainerHighest
+                : colorScheme.surfaceContainerLow,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+                blurRadius: 22,
+                offset: const Offset(0, -10),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -720,13 +737,15 @@ class TripsTab extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.3 : 0.1),
-              blurRadius: 10,
-              spreadRadius: 2,
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.10),
+              blurRadius: 22,
+              offset: const Offset(0, -10),
             ),
           ],
         ),
@@ -795,10 +814,10 @@ class TripsTab extends StatelessWidget {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.05),
+                        color: colorScheme.primary.withValues(alpha: 0.06),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.1),
+                          color: colorScheme.primary.withValues(alpha: 0.14),
                         ),
                       ),
                       child: Column(
@@ -845,8 +864,8 @@ class TripsTab extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? colorScheme.surfaceVariant
-                              : const Color(0xFFF5F5F5),
+                              ? colorScheme.surfaceContainerHighest
+                              : colorScheme.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -902,12 +921,8 @@ class TripsTab extends StatelessWidget {
                             onPressed: () =>
                                 _handleConfirmRide(context, controller, lang),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark
-                                  ? colorScheme.primary
-                                  : Colors.black,
-                              foregroundColor: isDark
-                                  ? colorScheme.onPrimary
-                                  : Colors.white,
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -963,10 +978,16 @@ class TripsTab extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surface : Colors.white,
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(8),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 6),
+            ),
           ],
         ),
         child: Icon(icon, size: 20, color: colorScheme.onSurface),
@@ -988,10 +1009,14 @@ class TripsTab extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? colorScheme.surfaceVariant : const Color(0xFFF8F8F8),
+          color: isDark
+              ? colorScheme.surfaceContainerHighest
+              : colorScheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: colorScheme.outline.withOpacity(isDark ? 0.2 : 0.5),
+            color: colorScheme.outlineVariant.withValues(
+              alpha: isDark ? 0.2 : 0.35,
+            ),
           ),
         ),
         child: Row(
@@ -999,7 +1024,7 @@ class TripsTab extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: colorScheme.primary.withOpacity(0.1),
+                color: colorScheme.primary.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: colorScheme.primary, size: 24),
@@ -1032,7 +1057,7 @@ class TripsTab extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: colorScheme.onSurfaceVariant.withValues(alpha: 0.55),
             ),
           ],
         ),

@@ -108,19 +108,27 @@ class RideCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isDark ? colorScheme.surfaceVariant : Colors.white,
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [colorScheme.surface, colorScheme.surfaceContainerHighest]
+                  : [Colors.white, colorScheme.surfaceContainerLow],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
               ),
             ],
             border: Border.all(
               color: isPending
-                  ? Colors.orange.withOpacity(0.3)
-                  : colorScheme.outline.withOpacity(0.1),
+                  ? colorScheme.primary.withValues(alpha: isDark ? 0.35 : 0.22)
+                  : colorScheme.outlineVariant.withValues(
+                      alpha: isDark ? 0.25 : 0.35,
+                    ),
               width: 1,
             ),
           ),
@@ -132,12 +140,14 @@ class RideCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: colorScheme.primary.withOpacity(0.1),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: isDark ? 0.35 : 1,
+                      ),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
                       Icons.group_rounded,
-                      color: colorScheme.primary,
+                      color: colorScheme.onPrimaryContainer,
                       size: 20,
                     ),
                   ),
@@ -241,24 +251,23 @@ class RideCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: onJoin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark
-                          ? colorScheme.primary
-                          : Colors.black,
-                      foregroundColor: isDark
-                          ? colorScheme.onPrimary
-                          : Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: Text(
                       AppDictionary.text(lang, 'join_group'),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                 ),
@@ -267,20 +276,23 @@ class RideCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 44,
+                  height: 48,
                   child: ElevatedButton(
                     onPressed: onAccept,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.tertiary,
+                      foregroundColor: colorScheme.onTertiary,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                     child: const Text(
                       'ACEPTAR VIAJE',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
                 ),
@@ -299,10 +311,17 @@ class RideCard extends StatelessWidget {
     bool isDark,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDark ? colorScheme.surface : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
+        color: isDark
+            ? colorScheme.surfaceContainerHighest
+            : colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.2 : 0.3,
+          ),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
