@@ -400,7 +400,8 @@ class _CommunityTabState extends State<CommunityTab> {
                     );
                   }
 
-                  if (status != 'gathering' || pending.isEmpty) {
+                  if ((status != 'gathering' && status != 'searching_driver') ||
+                      pending.isEmpty) {
                     return const SizedBox.shrink();
                   }
 

@@ -217,27 +217,42 @@ class TripsTab extends StatelessWidget {
                               final groupId = (group['id'] ?? '').toString();
                               if (groupId.isEmpty) return;
 
-                              final hasActive = await rideService
-                                  .hasActiveGroupRequest();
-                              if (hasActive) {
+                              try {
+                                final hasActive = await rideService
+                                    .hasActiveGroupRequest();
+                                if (hasActive) {
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppDictionary.text(
+                                          lang,
+                                          'already_in_group',
+                                        ),
+                                      ),
+                                      backgroundColor: colorScheme.error,
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                await rideService.requestJoinGroup(
+                                  groupId: groupId,
+                                );
+                              } catch (_) {
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      AppDictionary.text(
-                                        lang,
-                                        'already_in_group',
-                                      ),
+                                      lang == 'es'
+                                          ? 'No se pudo enviar la solicitud. Verifica tu sesión y permisos.'
+                                          : 'Could not send request. Check your session and permissions.',
                                     ),
                                     backgroundColor: colorScheme.error,
                                   ),
                                 );
                                 return;
                               }
-
-                              await rideService.requestJoinGroup(
-                                groupId: groupId,
-                              );
 
                               await NotificationService().showNotification(
                                 id: DateTime.now().millisecondsSinceEpoch

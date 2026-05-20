@@ -235,13 +235,58 @@ class RideService {
     final user = _client.auth.currentSession?.user ?? _client.auth.currentUser;
     if (user == null) return false;
 
-    final data = await _client
-        .from('group_members')
-        .select()
-        .eq('user_id', user.id)
-        .filter('status', 'in', ['pending', 'accepted']);
+    try {
+      const activeStatuses = [
+        'gathering',
+        'searching_driver',
+        'driver_assigned',
+        'active',
+        'payment_pending',
+        'payment_confirmed',
+      ];
 
-    return data.isNotEmpty;
+      final creatorGroup = await _client
+          .from('groups')
+          .select('id')
+          .eq('creator_id', user.id)
+          .filter('status', 'in', activeStatuses)
+          .limit(1);
+      if (creatorGroup.isNotEmpty) return true;
+
+      final driverGroup = await _client
+          .from('groups')
+          .select('id')
+          .eq('driver_id', user.id)
+          .filter('status', 'in', activeStatuses)
+          .limit(1);
+      if (driverGroup.isNotEmpty) return true;
+
+      final memberships = await _client
+          .from('group_members')
+          .select('group_id,status')
+          .eq('user_id', user.id)
+          .filter('status', 'in', ['pending', 'accepted']);
+
+      if (memberships.isEmpty) return false;
+
+      final groupIds = memberships
+          .map((r) => (r['group_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+
+      if (groupIds.isEmpty) return false;
+
+      final groups = await _client
+          .from('groups')
+          .select('id,status')
+          .inFilter('id', groupIds)
+          .filter('status', 'in', activeStatuses);
+
+      return groups.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> requestJoinGroup({required String groupId}) async {

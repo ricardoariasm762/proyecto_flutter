@@ -45,12 +45,14 @@ Modelo principal para el flujo de viajes compartidos.
   - `payment_pending` / `payment_confirmed` → etapa de pago/confirmación
   - `completed` / `cancelled` → finalización/cancelación
 - Contador de integrantes en tiempo real: total = `1 (creador) + miembros aceptados`.
+- Sección “Mis viajes”: lista únicamente grupos del usuario autenticado (si es creador, conductor o miembro).
 
 Archivos clave:
 - [ride_service.dart](file:///c:/flutter/proyecto_flutter/lib/services/ride_service.dart)
 - [community_tab.dart](file:///c:/flutter/proyecto_flutter/lib/screens/home/tabs/community_tab.dart)
 - [trips_tab.dart](file:///c:/flutter/proyecto_flutter/lib/screens/home/tabs/trips_tab.dart)
 - [ride_card.dart](file:///c:/flutter/proyecto_flutter/lib/screens/home/widgets/ride_card.dart)
+- [my_trips_screen.dart](file:///c:/flutter/proyecto_flutter/lib/screens/my_trips_screen.dart)
 
 ### 4) Sugerencia inteligente de grupos (matching geográfico)
 Antes de crear un grupo nuevo, la app consulta grupos existentes y sugiere los mejores candidatos.
@@ -110,19 +112,21 @@ Archivos clave:
 - Modo oscuro/claro.
 - “Madrid Mode”: overlay visual temático cuando está activado (opcional).
 - Localización ES/EN centralizada en un diccionario simple.
+- Animaciones con `lottie` (estados del flujo del viaje y elementos de UI) y marca en SVG con `flutter_svg`.
 
 Archivos clave:
 - [app_theme.dart](file:///c:/flutter/proyecto_flutter/lib/theme/app_theme.dart)
 - [theme_controller.dart](file:///c:/flutter/proyecto_flutter/lib/theme/theme_controller.dart)
 - [app_dictionary.dart](file:///c:/flutter/proyecto_flutter/lib/core/localization/app_dictionary.dart)
 - [main.dart](file:///c:/flutter/proyecto_flutter/lib/main.dart)
+- [home_screen.dart](file:///c:/flutter/proyecto_flutter/lib/screens/home_screen.dart)
 
 ## Stack y dependencias principales
 
 ### Frontend
 - Flutter (Dart) con Material Design / Material 3.
 - Gestión de estado: `provider`.
-- UI/tema: `flex_color_scheme`, `google_fonts`, `shimmer`, `awesome_dialog`, `lottie`.
+- UI/tema: `flex_color_scheme`, `google_fonts`, `shimmer`, `awesome_dialog`, `lottie`, `flutter_svg`.
 
 ### Mapas y geolocalización
 - `geolocator` para GPS y permisos.
