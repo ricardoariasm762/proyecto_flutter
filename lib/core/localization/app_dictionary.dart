@@ -151,6 +151,14 @@ class AppDictionary {
       'searching_driver_desc': 'We are looking for a match for your ride.',
       'gathering_members': 'Gathering members...',
       'gathering_members_desc': 'Waiting for other passengers to join.',
+      'suggested_groups_title': 'Suggested groups near you',
+      'suggested_groups_subtitle':
+          'Groups with a nearby origin and a destination similar to yours.',
+      'create_my_group': 'Create my group',
+      'match_origin': 'Near you',
+      'match_destination': 'Similar destination',
+      'already_in_group': 'You already have an active request or group.',
+      'join_request_success': 'Request sent. Check "My Group" for updates.',
       'find_driver': 'Find Driver',
     },
     'es': {
@@ -306,6 +314,15 @@ class AppDictionary {
       'gathering_members': 'Buscando acompañantes...',
       'gathering_members_desc':
           'Esperando que otros pasajeros se unan al viaje.',
+      'suggested_groups_title': 'Grupos sugeridos cerca de ti',
+      'suggested_groups_subtitle':
+          'Grupos con origen cercano y un destino parecido al tuyo.',
+      'create_my_group': 'Crear mi grupo',
+      'match_origin': 'Cerca de ti',
+      'match_destination': 'Destino similar',
+      'already_in_group': 'Ya tienes una solicitud o grupo activo.',
+      'join_request_success':
+          'Solicitud enviada. Revisa "Mi Grupo" para ver el estado.',
       'find_driver': 'Buscar conductor',
     },
   };

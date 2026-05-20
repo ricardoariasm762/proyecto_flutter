@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/controllers/home_controller.dart';
 import '../../../core/localization/language_controller.dart';
 import '../../../core/localization/app_dictionary.dart';
+import '../../../services/notification_service.dart';
+import '../../../services/ride_service.dart';
 import '../../../theme/theme_controller.dart';
+import '../widgets/ride_card.dart';
 
 class TripsTab extends StatelessWidget {
   const TripsTab({super.key});
@@ -119,6 +123,225 @@ class TripsTab extends StatelessWidget {
     if (newPrice != null) {
       controller.updateOfferedPrice(newPrice);
     }
+  }
+
+  Future<void> _handleConfirmRide(
+    BuildContext context,
+    HomeController controller,
+    String lang,
+  ) async {
+    if (controller.destination == null || controller.currentPosition == null) {
+      return;
+    }
+
+    final rideService = RideService();
+    final userId =
+        Supabase.instance.client.auth.currentSession?.user.id ??
+        Supabase.instance.client.auth.currentUser?.id;
+
+    final suggestions = await rideService.getSuggestedGroups(
+      originLat: controller.currentPosition!.latitude,
+      originLng: controller.currentPosition!.longitude,
+      destLat: controller.destination!.latitude,
+      destLng: controller.destination!.longitude,
+      excludeUserId: userId,
+    );
+
+    if (!context.mounted) return;
+
+    if (suggestions.isEmpty) {
+      await controller.createGroup(context, lang);
+      return;
+    }
+
+    final rootContext = context;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppDictionary.text(lang, 'suggested_groups_title'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppDictionary.text(lang, 'suggested_groups_subtitle'),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: suggestions.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final group = suggestions[index];
+                      final originKm = (group['_match_origin_km'] as num?)
+                          ?.toDouble();
+                      final destKm = (group['_match_dest_km'] as num?)
+                          ?.toDouble();
+                      final availableSeats =
+                          group['available_seats'] as int? ?? 4;
+                      final offeredPrice =
+                          (group['offered_price'] as num?)?.toDouble() ??
+                          6000.0;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RideCard(
+                            ride: group,
+                            members: 1,
+                            seatsLeft: availableSeats,
+                            totalFare: offeredPrice,
+                            splitFare: offeredPrice,
+                            onJoin: () async {
+                              final groupId = (group['id'] ?? '').toString();
+                              if (groupId.isEmpty) return;
+
+                              final hasActive = await rideService
+                                  .hasActiveGroupRequest();
+                              if (hasActive) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppDictionary.text(
+                                        lang,
+                                        'already_in_group',
+                                      ),
+                                    ),
+                                    backgroundColor: colorScheme.error,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              await rideService.requestJoinGroup(
+                                groupId: groupId,
+                              );
+
+                              await NotificationService().showNotification(
+                                id: DateTime.now().millisecondsSinceEpoch
+                                    .remainder(100000),
+                                title: AppDictionary.text(lang, 'request_sent'),
+                                body: AppDictionary.text(
+                                  lang,
+                                  'join_request_success',
+                                ),
+                              );
+
+                              if (!context.mounted) return;
+                              if (!rootContext.mounted) return;
+                              Navigator.pop(context);
+                              controller.setTabIndex(1);
+                              ScaffoldMessenger.of(rootContext).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    AppDictionary.text(lang, 'request_sent'),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          if (originKm != null || destKm != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? colorScheme.surfaceVariant
+                                    : const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    size: 16,
+                                    color: colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      [
+                                        if (originKm != null)
+                                          "${AppDictionary.text(lang, 'match_origin')}: ${originKm.toStringAsFixed(1)} km",
+                                        if (destKm != null)
+                                          "${AppDictionary.text(lang, 'match_destination')}: ${destKm.toStringAsFixed(1)} km",
+                                      ].join(" • "),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      await controller.createGroup(context, lang);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark
+                          ? colorScheme.primary
+                          : Colors.black,
+                      foregroundColor: isDark
+                          ? colorScheme.onPrimary
+                          : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      AppDictionary.text(lang, 'create_my_group'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -677,7 +900,7 @@ class TripsTab extends StatelessWidget {
                           height: 56,
                           child: ElevatedButton(
                             onPressed: () =>
-                                controller.createGroup(context, lang),
+                                _handleConfirmRide(context, controller, lang),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isDark
                                   ? colorScheme.primary

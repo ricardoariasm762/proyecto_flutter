@@ -96,6 +96,10 @@ class RideCard extends StatelessWidget {
     final displayFare =
         (ride['offered_price'] as num?)?.toDouble() ?? splitFare;
 
+    final availableSeats =
+        (ride['available_seats'] as int?) ?? (seatsLeft > 0 ? seatsLeft : 1);
+    final totalSeats = availableSeats + 1;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -199,7 +203,7 @@ class RideCard extends StatelessWidget {
                 children: [
                   _buildInfoChip(
                     Icons.people_outline,
-                    "$members/5",
+                    "$members/$totalSeats",
                     colorScheme,
                     isDark,
                   ),

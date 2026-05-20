@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../core/utils/geo_match_utils.dart';
 
 class RideService {
   RideService({SupabaseClient? client})
@@ -130,6 +131,104 @@ class RideService {
           })
           .toList(growable: false);
     });
+  }
+
+  Future<List<Map<String, dynamic>>> getSuggestedGroups({
+    required double originLat,
+    required double originLng,
+    required double destLat,
+    required double destLng,
+    String? excludeUserId,
+    double maxOriginKm = 2.5,
+    double maxDestKm = 4.0,
+    int limit = 5,
+    int scanLimit = 60,
+  }) async {
+    try {
+      final desiredBearing = geoBearingDegrees(
+        lat1: originLat,
+        lng1: originLng,
+        lat2: destLat,
+        lng2: destLng,
+      );
+
+      var query = _client
+          .from('groups')
+          .select()
+          .filter('status', 'in', ['gathering', 'searching_driver'])
+          .order('created_at', ascending: false)
+          .limit(scanLimit);
+
+      final rows = await query;
+
+      final candidates = <Map<String, dynamic>>[];
+      for (final r in rows) {
+        if (excludeUserId != null && excludeUserId.isNotEmpty) {
+          final creatorId = (r['creator_id'] ?? '').toString();
+          if (creatorId == excludeUserId) continue;
+        }
+        final oLat = (r['origin_lat'] as num?)?.toDouble();
+        final oLng = (r['origin_lng'] as num?)?.toDouble();
+        final dLat = (r['dest_lat'] as num?)?.toDouble();
+        final dLng = (r['dest_lng'] as num?)?.toDouble();
+        if (oLat == null || oLng == null || dLat == null || dLng == null) {
+          continue;
+        }
+
+        final originMeters = geoDistanceMeters(
+          lat1: originLat,
+          lng1: originLng,
+          lat2: oLat,
+          lng2: oLng,
+        );
+        final destMeters = geoDistanceMeters(
+          lat1: destLat,
+          lng1: destLng,
+          lat2: dLat,
+          lng2: dLng,
+        );
+
+        if (originMeters > maxOriginKm * 1000.0) continue;
+        if (destMeters > maxDestKm * 1000.0) continue;
+
+        final candidateBearing = geoBearingDegrees(
+          lat1: oLat,
+          lng1: oLng,
+          lat2: dLat,
+          lng2: dLng,
+        );
+        final dirDiff = geoAngularDifferenceDegrees(
+          desiredBearing,
+          candidateBearing,
+        );
+
+        final originKm = originMeters / 1000.0;
+        final destKm = destMeters / 1000.0;
+
+        final originScore = 1.0 / (1.0 + originKm);
+        final destScore = 1.0 / (1.0 + destKm);
+        final dirScore = 1.0 / (1.0 + (dirDiff / 60.0));
+        final score = originScore * 0.45 + destScore * 0.45 + dirScore * 0.10;
+
+        final enriched = Map<String, dynamic>.from(r);
+        enriched['_match_origin_km'] = originKm;
+        enriched['_match_dest_km'] = destKm;
+        enriched['_match_dir_diff'] = dirDiff;
+        enriched['_match_score'] = score;
+        candidates.add(enriched);
+      }
+
+      candidates.sort((a, b) {
+        final sa = (a['_match_score'] as num?)?.toDouble() ?? 0.0;
+        final sb = (b['_match_score'] as num?)?.toDouble() ?? 0.0;
+        return sb.compareTo(sa);
+      });
+
+      if (candidates.length <= limit) return candidates;
+      return candidates.sublist(0, limit);
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<bool> hasActiveGroupRequest() async {
