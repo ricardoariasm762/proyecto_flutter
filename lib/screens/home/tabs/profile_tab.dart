@@ -7,6 +7,7 @@ import '../../auth_screen.dart';
 import '../../my_trips_screen.dart';
 import '../../theme_tab.dart';
 import '../../language_screen.dart';
+import '../../ai_assistant_screen.dart';
 import '../../../theme/theme_controller.dart';
 
 class ProfileTab extends StatelessWidget {
@@ -104,6 +105,81 @@ class ProfileTab extends StatelessWidget {
               Navigator.of(
                 context,
               ).push(MaterialPageRoute(builder: (_) => const MyTripsScreen()));
+            },
+          ),
+          const SizedBox(height: 32),
+          Text(
+            lang == 'es' ? 'Ayuda y Soporte' : 'Help & Support',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _OptionTile(
+            icon: Icons.description_outlined,
+            title: lang == 'es'
+                ? 'Términos y condiciones'
+                : 'Terms & Conditions',
+            subtitle: lang == 'es'
+                ? 'Reglas básicas de uso de la app'
+                : 'Basic rules for using the app',
+            colorScheme: colorScheme,
+            isDark: isDark,
+            onTap: () {
+              showDialog<void>(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text(
+                      lang == 'es'
+                          ? 'Términos y condiciones'
+                          : 'Terms & Conditions',
+                    ),
+                    content: SingleChildScrollView(
+                      child: Text(
+                        lang == 'es'
+                            ? '• Respeta a los demás usuarios.\n'
+                                  '• Verifica el punto de recogida y destino.\n'
+                                  '• No compartas información sensible.\n'
+                                  '• En caso de emergencia, contacta a las autoridades.\n'
+                                  '• Ride Match es una plataforma de conexión; la responsabilidad del trayecto recae en los usuarios.'
+                            : '• Respect other users.\n'
+                                  '• Verify pickup and destination.\n'
+                                  '• Do not share sensitive information.\n'
+                                  '• In emergencies, contact local authorities.\n'
+                                  '• Ride Match is a matching platform; trip responsibility remains with users.',
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(lang == 'es' ? 'Cerrar' : 'Close'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _OptionTile(
+            icon: Icons.support_agent_rounded,
+            title: lang == 'es'
+                ? 'Quejas / Atención al cliente'
+                : 'Support Chat',
+            subtitle: lang == 'es'
+                ? 'Habla con el asistente'
+                : 'Talk to the assistant',
+            colorScheme: colorScheme,
+            isDark: isDark,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AiAssistantScreen(),
+                ),
+              );
             },
           ),
           const SizedBox(height: 32),
