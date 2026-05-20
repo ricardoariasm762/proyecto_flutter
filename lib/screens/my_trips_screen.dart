@@ -6,7 +6,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/localization/app_dictionary.dart';
 import '../core/localization/language_controller.dart';
-import '../services/ride_service.dart';
 
 class MyTripsScreen extends StatefulWidget {
   const MyTripsScreen({super.key});
@@ -49,14 +48,54 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
   }
 
   Future<List<Map<String, dynamic>>> _fetchMyGroups() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId =
+        Supabase.instance.client.auth.currentSession?.user.id ??
+        Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return [];
     try {
-      return await Supabase.instance.client
+      final client = Supabase.instance.client;
+
+      final myOwnedOrDriven = await client
           .from('groups')
           .select()
-          .eq('creator_id', userId)
+          .or('creator_id.eq.$userId,driver_id.eq.$userId')
           .order('created_at', ascending: false);
+
+      final memberships = await client
+          .from('group_members')
+          .select('group_id')
+          .eq('user_id', userId);
+
+      final memberGroupIds = memberships
+          .map((r) => (r['group_id'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet()
+          .toList(growable: false);
+
+      final fromMembership = memberGroupIds.isEmpty
+          ? const <Map<String, dynamic>>[]
+          : await client.from('groups').select().inFilter('id', memberGroupIds);
+
+      final mergedById = <String, Map<String, dynamic>>{};
+      for (final r in myOwnedOrDriven) {
+        final id = (r['id'] ?? '').toString();
+        if (id.isEmpty) continue;
+        mergedById[id] = Map<String, dynamic>.from(r);
+      }
+      for (final r in fromMembership) {
+        final id = (r['id'] ?? '').toString();
+        if (id.isEmpty) continue;
+        mergedById.putIfAbsent(id, () => Map<String, dynamic>.from(r));
+      }
+
+      final merged = mergedById.values.toList(growable: false);
+      merged.sort((a, b) {
+        final aCreated = (a['created_at'] ?? '').toString();
+        final bCreated = (b['created_at'] ?? '').toString();
+        return bCreated.compareTo(aCreated);
+      });
+
+      return merged;
     } catch (_) {
       return [];
     }
@@ -67,16 +106,22 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
     final lang = context.watch<LanguageController>().currentLanguage;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppDictionary.text(lang, 'my_trips')),
-      ),
+      appBar: AppBar(title: Text(AppDictionary.text(lang, 'my_trips'))),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _fetchMyGroups(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (snapshot.hasError) return Center(child: Text(AppDictionary.text(lang, 'no_rides_loaded')));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(AppDictionary.text(lang, 'no_rides_loaded')),
+            );
+          }
           final rides = snapshot.data ?? [];
-          if (rides.isEmpty) return Center(child: Text(AppDictionary.text(lang, 'no_my_trips')));
+          if (rides.isEmpty) {
+            return Center(child: Text(AppDictionary.text(lang, 'no_my_trips')));
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
@@ -84,7 +129,6 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final ride = rides[index];
-              final rideId = (ride['id'] ?? '').toString();
               final seats = ride['available_seats']?.toString() ?? '0';
               final status = (ride['status'] ?? 'pending').toString();
               final dLat = (ride['dest_lat'] as num?)?.toDouble();
@@ -97,16 +141,24 @@ class _MyTripsScreenState extends State<MyTripsScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Theme.of(context).colorScheme.outline),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outline,
+                  ),
                 ),
                 child: ListTile(
                   title: FutureBuilder<String>(
                     future: destinationFuture,
                     builder: (context, destSnap) {
-                      final title = (destSnap.data ?? AppDictionary.text(lang, 'destination')).trim();
+                      final title =
+                          (destSnap.data ??
+                                  AppDictionary.text(lang, 'destination'))
+                              .trim();
                       return Text(
-                        title.isEmpty ? AppDictionary.text(lang, 'destination') : title,
-                        maxLines: 1, overflow: TextOverflow.ellipsis,
+                        title.isEmpty
+                            ? AppDictionary.text(lang, 'destination')
+                            : title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       );
                     },
